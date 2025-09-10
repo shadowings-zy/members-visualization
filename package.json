@@ -28,5 +28,8 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/datawhalechina/members-visualization.git"
+  },
+  "devDependencies": {
+    "dotenv": "17.2.2"
   }
 }

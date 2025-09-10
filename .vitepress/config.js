@@ -4,10 +4,24 @@ export default defineConfig({
   title: 'Datawhale 成员可视化',
   description: 'Datawhale 组织成员研究方向可视化展示平台',
   // 根据环境动态设置 base 路径
-  base: process.env.NODE_ENV === 'production' ? '/members-visualization/' : '/',
+  base: '/members-visualization/',
 
   // 语言设置
   lang: 'zh-CN',
+
+  // 路由配置
+  cleanUrls: true,
+
+  // 构建配置
+  vite: {
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: undefined
+        }
+      }
+    }
+  },
 
   // 网站头部配置
   head: [
@@ -17,8 +31,21 @@ export default defineConfig({
     ['meta', { property: 'og:title', content: 'Datawhale 成员可视化' }],
     ['meta', { property: 'og:description', content: 'Datawhale 组织成员研究方向可视化展示平台' }],
     ['meta', { property: 'og:type', content: 'website' }],
-    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
-    ['link', { rel: 'apple-touch-icon', href: '/logo.svg' }]
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/members-visualization/logo.svg' }],
+    ['link', { rel: 'apple-touch-icon', href: '/members-visualization/logo.svg' }],
+    // GitHub Pages SPA 路由处理
+    ['script', {}, `
+      (function(l) {
+        if (l.search[1] === '/' ) {
+          var decoded = l.search.slice(1).split('&').map(function(s) {
+            return s.replace(/~and~/g, '&')
+          }).join('?');
+          window.history.replaceState(null, null,
+              l.pathname.slice(0, -1) + decoded + l.hash
+          );
+        }
+      }(window.location))
+    `]
   ],
 
   themeConfig: {

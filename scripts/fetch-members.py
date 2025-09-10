@@ -12,6 +12,14 @@ import time
 import requests
 from pathlib import Path
 
+# 加载环境变量
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # python-dotenv 不是必需的，如果没有安装就忽略
+    pass
+
 # 配置
 CONFIG = {
     'ORG_NAME': os.getenv('GITHUB_ORG', 'datawhalechina'),

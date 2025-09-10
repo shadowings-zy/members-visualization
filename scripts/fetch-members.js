@@ -9,6 +9,13 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
 
+// 加载环境变量
+try {
+  require('dotenv').config();
+} catch (error) {
+  // dotenv 不是必需的，如果没有安装就忽略
+}
+
 // 配置
 const CONFIG = {
   // GitHub 组织名称

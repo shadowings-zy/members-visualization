@@ -106,12 +106,23 @@ user3,王五,https://github.com/user3,"推荐系统;NLP"
    npm install
    ```
 
-3. **启动开发服务器**
+3. **配置环境变量（推荐）**
+   ```bash
+   # 复制环境变量模板
+   cp .env.example .env
+
+   # 编辑 .env 文件，添加你的 GitHub Token
+   # GITHUB_TOKEN=ghp_your_token_here
+   ```
+
+   > 💡 **提示**：配置 GitHub Token 可以避免 API 速率限制，详见 [环境变量配置指南](ENVIRONMENT_SETUP.md)
+
+4. **启动开发服务器**
    ```bash
    npm run docs:dev
    ```
 
-4. **访问网站**
+5. **访问网站**
    打开浏览器访问 `http://localhost:5173`
 
 ### 数据管理
