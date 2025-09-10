@@ -60,24 +60,21 @@ jobs:
           git commit -m "🤖 Auto-update member data - $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
           git push
 
-      - name: Setup Pages
-        if: steps.check-changes.outputs.changes == 'true'
-        uses: actions/configure-pages@v4
-
       - name: Build with VitePress
         if: steps.check-changes.outputs.changes == 'true'
         run: npm run docs:build
 
-      - name: Upload artifact
+      - name: Deploy to gh-pages
         if: steps.check-changes.outputs.changes == 'true'
-        uses: actions/upload-pages-artifact@v3
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          path: docs/.vitepress/dist
-
-      - name: Deploy to GitHub Pages
-        if: steps.check-changes.outputs.changes == 'true'
-        id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs/.vitepress/dist
+          publish_branch: gh-pages
+          force_orphan: true
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: 'Auto-update and deploy from daily data sync - ${{ github.sha }}'
 
       - name: Create summary
         run: |
