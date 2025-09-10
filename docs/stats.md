@@ -11,8 +11,8 @@ const loading = ref(true)
 // 加载数据
 const loadData = async () => {
   try {
-    const basePath = import.meta.env.BASE_URL || '/'
-    const csvPath = `${basePath}data/members.csv`.replace('//', '/')
+    const basePath = '/members-visualization/'
+    const csvPath = `${basePath}data/members.csv`
     
     const response = await fetch(csvPath)
     const text = await response.text()
@@ -65,44 +65,44 @@ onMounted(() => {
       <div class="stat-label">总成员数</div>
       <div class="stat-desc">Datawhale 组织成员总数</div>
     </div>
-    
+
     <div class="stat-card">
       <div class="stat-number">{{ Object.keys(domainCount).length }}</div>
       <div class="stat-label">研究方向数</div>
       <div class="stat-desc">涉及的研究领域总数</div>
     </div>
-    
+
     <div class="stat-card">
       <div class="stat-number">{{ members.length > 0 ? (members.reduce((sum, m) => sum + m.domain.length, 0) / members.length).toFixed(1) : 0 }}</div>
       <div class="stat-label">平均方向数/人</div>
       <div class="stat-desc">每个成员平均涉及的方向数</div>
     </div>
-    
+
     <div class="stat-card">
       <div class="stat-number">{{ Object.entries(domainCount).sort((a, b) => b[1] - a[1])[0]?.[0] || '暂无' }}</div>
       <div class="stat-label">最热门方向</div>
       <div class="stat-desc">参与人数最多的研究方向</div>
     </div>
   </div>
-
-  ## 📋 详细统计分析
-
-  ### 研究方向分布
-
-  <div class="domain-stats">
-    <div v-for="[domain, count] in Object.entries(domainCount).sort((a, b) => b[1] - a[1])" :key="domain" class="domain-row">
-      <div class="domain-name">{{ domain }}</div>
-      <div class="domain-bar">
-        <div class="domain-fill" :style="{ width: (count / Math.max(...Object.values(domainCount)) * 100) + '%' }"></div>
-      </div>
-      <div class="domain-count">{{ count }} 人 ({{ ((count / members.length) * 100).toFixed(1) }}%)</div>
-    </div>
-  </div>
-
-  ## 📤 数据导出工具
-
-  <DataExport :members="members" :domain-count="domainCount" />
 </div>
+
+## 📋 详细统计分析
+
+### 研究方向分布
+
+<div v-if="!loading" class="domain-stats">
+  <div v-for="[domain, count] in Object.entries(domainCount).sort((a, b) => b[1] - a[1])" :key="domain" class="domain-row">
+    <div class="domain-name">{{ domain }}</div>
+    <div class="domain-bar">
+      <div class="domain-fill" :style="{ width: (count / Math.max(...Object.values(domainCount)) * 100) + '%' }"></div>
+    </div>
+    <div class="domain-count">{{ count }} 人 ({{ ((count / members.length) * 100).toFixed(1) }}%)</div>
+  </div>
+</div>
+
+## 📤 数据导出工具
+
+<DataExport v-if="!loading" :members="members" :domain-count="domainCount" />
 
 <style scoped>
 .loading {

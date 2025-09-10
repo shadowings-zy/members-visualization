@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import DataExport from './DataExport.vue'
 
@@ -39,9 +39,12 @@ const stats = computed(() => {
 
 onMounted(async () => {
   try {
+    // 等待DOM完全渲染
+    await nextTick()
+
     // 动态获取 CSV 数据路径，适配开发和生产环境
-    const basePath = import.meta.env.BASE_URL || '/'
-    const csvPath = `${basePath}data/members.csv`.replace('//', '/')
+    const basePath = '/members-visualization/'
+    const csvPath = `${basePath}data/members.csv`
 
     console.log('Fetching data from:', csvPath)
 
@@ -90,6 +93,10 @@ onMounted(async () => {
     }
 
     // ---------------- 增强饼图 ----------------
+    if (!pieRef.value) {
+      console.error('饼图容器未找到')
+      return
+    }
     pieChart = echarts.init(pieRef.value)
     const pieData = Object.entries(domainCount.value).map(([k, v]) => ({
       name: k,
@@ -176,6 +183,10 @@ onMounted(async () => {
     })
 
     // ---------------- 增强柱状图 ----------------
+    if (!barRef.value) {
+      console.error('柱状图容器未找到')
+      return
+    }
     barChart = echarts.init(barRef.value)
     const domainEntries = Object.entries(domainCount.value).sort((a, b) => b[1] - a[1])
 
@@ -291,7 +302,7 @@ onMounted(async () => {
     })
 
     // ---------------- 词云图 ----------------
-    if (wordCloudLoaded.value) {
+    if (wordCloudLoaded.value && wordCloudRef.value) {
       wordCloudChart = echarts.init(wordCloudRef.value)
       wordCloudChart.setOption({
         title: {
@@ -400,6 +411,10 @@ onMounted(async () => {
       })
     })
 
+    if (!networkRef.value) {
+      console.error('网络图容器未找到')
+      return
+    }
     networkChart = echarts.init(networkRef.value)
     networkChart.setOption({
       title: {
@@ -494,6 +509,10 @@ onMounted(async () => {
     })
 
     // ---------------- 趋势分析图 ----------------
+    if (!trendRef.value) {
+      console.error('趋势图容器未找到')
+      return
+    }
     trendChart = echarts.init(trendRef.value)
 
     // 模拟趋势数据（实际项目中可以从历史数据获取）

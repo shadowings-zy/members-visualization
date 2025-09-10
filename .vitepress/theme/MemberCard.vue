@@ -23,14 +23,30 @@ const fetchGithubData = async (username) => {
   try {
     const response = await fetch(`https://api.github.com/users/${username}`)
     if (!response.ok) {
+      // 如果是403错误（速率限制），返回基本信息而不是null
+      if (response.status === 403) {
+        console.warn(`GitHub API 速率限制，使用基本信息显示 ${username}`)
+        return {
+          login: username,
+          avatar_url: `https://github.com/${username}.png`,
+          html_url: `https://github.com/${username}`,
+          name: username,
+          bio: '由于API限制，无法获取详细信息',
+          public_repos: 0,
+          followers: 0,
+          following: 0,
+          repos: [],
+          totalStars: 0
+        }
+      }
       throw new Error(`HTTP ${response.status}`)
     }
     const userData = await response.json()
-    
+
     // 获取仓库数据
     const reposResponse = await fetch(`https://api.github.com/users/${username}/repos?sort=updated&per_page=10`)
     const repos = reposResponse.ok ? await reposResponse.json() : []
-    
+
     return {
       ...userData,
       repos: repos,
@@ -38,7 +54,19 @@ const fetchGithubData = async (username) => {
     }
   } catch (err) {
     console.warn(`获取 ${username} 的 GitHub 数据失败:`, err)
-    return null
+    // 返回基本信息而不是null
+    return {
+      login: username,
+      avatar_url: `https://github.com/${username}.png`,
+      html_url: `https://github.com/${username}`,
+      name: username,
+      bio: '无法获取GitHub信息',
+      public_repos: 0,
+      followers: 0,
+      following: 0,
+      repos: [],
+      totalStars: 0
+    }
   }
 }
 
