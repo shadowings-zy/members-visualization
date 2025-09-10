@@ -4,7 +4,7 @@ export default defineConfig({
   title: 'Datawhale 成员可视化',
   description: 'Datawhale 组织成员研究方向可视化展示平台',
   // 根据环境动态设置 base 路径
-  base: '/members-visualization/',
+  base: process.env.NODE_ENV === 'production' ? '/members-visualization/' : '/',
 
   // 语言设置
   lang: 'zh-CN',
@@ -14,6 +14,7 @@ export default defineConfig({
 
   // 构建配置
   vite: {
+    base: '/members-visualization/',
     build: {
       rollupOptions: {
         output: {

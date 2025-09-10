@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "docs:dev": "npm run copy-data && vitepress dev docs",
-    "docs:build": "npm run fetch-data && npm run copy-data && vitepress build docs",
+    "docs:build": "npm run fetch-data && npm run copy-data && cross-env NODE_ENV=production vitepress build docs && node scripts/fix-paths.js",
     "docs:serve": "vitepress serve docs",
     "fetch-data": "node scripts/fetch-members.js",
     "fetch-data:python": "python scripts/fetch-members.py",
@@ -30,6 +30,7 @@
     "url": "https://github.com/datawhalechina/members-visualization.git"
   },
   "devDependencies": {
+    "cross-env": "10.0.0",
     "dotenv": "17.2.2"
   }
 }

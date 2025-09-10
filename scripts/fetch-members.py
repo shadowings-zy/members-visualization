@@ -172,7 +172,9 @@ def check_existing_data():
 def backup_existing_data():
     """备份现有数据"""
     if os.path.exists(CONFIG['OUTPUT_FILE']):
-        backup_path = CONFIG['OUTPUT_FILE'].replace('.csv', f'.backup.{int(time.time())}.csv')
+        # 将Path对象转换为字符串进行操作
+        output_file_str = str(CONFIG['OUTPUT_FILE'])
+        backup_path = output_file_str.replace('.csv', f'.backup.{int(time.time())}.csv')
         import shutil
         shutil.copy2(CONFIG['OUTPUT_FILE'], backup_path)
         print(f"📋 已备份现有数据: {backup_path}")
