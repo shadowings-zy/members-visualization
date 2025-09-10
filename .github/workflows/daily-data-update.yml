@@ -1,0 +1,92 @@
+name: Daily Data Update
+
+on:
+  # 每日 00:00 UTC 自动运行
+  schedule:
+    - cron: '0 0 * * *'
+  
+  # 允许手动触发
+  workflow_dispatch:
+
+# 设置权限
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  update-data-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Fetch latest member data
+        run: npm run fetch-data
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ORG: datawhalechina
+
+      - name: Check for data changes
+        id: check-changes
+        run: |
+          if git diff --quiet data/members.csv; then
+            echo "No changes in member data"
+            echo "changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "Member data has changed"
+            echo "changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit updated data
+        if: steps.check-changes.outputs.changes == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data/members.csv
+          git commit -m "🤖 Auto-update member data - $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          git push
+
+      - name: Setup Pages
+        if: steps.check-changes.outputs.changes == 'true'
+        uses: actions/configure-pages@v4
+
+      - name: Build with VitePress
+        if: steps.check-changes.outputs.changes == 'true'
+        run: npm run docs:build
+
+      - name: Upload artifact
+        if: steps.check-changes.outputs.changes == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/.vitepress/dist
+
+      - name: Deploy to GitHub Pages
+        if: steps.check-changes.outputs.changes == 'true'
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Create summary
+        run: |
+          echo "## 📊 Daily Data Update Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Date**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.check-changes.outputs.changes }}" == "true" ]; then
+            echo "- **Status**: ✅ Data updated and site redeployed" >> $GITHUB_STEP_SUMMARY
+            echo "- **Changes**: Member data has been updated" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Status**: ℹ️ No changes detected" >> $GITHUB_STEP_SUMMARY
+            echo "- **Changes**: Member data is up to date" >> $GITHUB_STEP_SUMMARY
+          fi
