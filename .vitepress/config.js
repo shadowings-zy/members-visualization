@@ -1,10 +1,12 @@
 import { defineConfig } from 'vitepress'
 
+// 根据环境动态设置 base 路径
+const base = process.env.NODE_ENV === 'production' ? '/members-visualization/' : '/'
+
 export default defineConfig({
   title: 'Datawhale 成员可视化',
   description: 'Datawhale 组织成员研究方向可视化展示平台',
-  // 根据环境动态设置 base 路径
-  base: process.env.NODE_ENV === 'production' ? '/members-visualization/' : '/',
+  base,
 
   // 语言设置
   lang: 'zh-CN',
@@ -14,9 +16,20 @@ export default defineConfig({
 
   // 构建配置
   vite: {
+    base,
     server: {
       port: 5173,
       host: true
+    },
+    build: {
+      assetsDir: 'assets',
+      rollupOptions: {
+        output: {
+          assetFileNames: 'assets/[name].[hash].[ext]',
+          chunkFileNames: 'assets/chunks/[name].[hash].js',
+          entryFileNames: 'assets/[name].[hash].js'
+        }
+      }
     }
   },
 
@@ -28,8 +41,8 @@ export default defineConfig({
     ['meta', { property: 'og:title', content: 'Datawhale 成员可视化' }],
     ['meta', { property: 'og:description', content: 'Datawhale 组织成员研究方向可视化展示平台' }],
     ['meta', { property: 'og:type', content: 'website' }],
-    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
-    ['link', { rel: 'apple-touch-icon', href: '/logo.svg' }],
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}logo.svg` }],
+    ['link', { rel: 'apple-touch-icon', href: `${base}logo.svg` }],
     // GitHub Pages SPA 路由处理
     ['script', {}, `
       (function(l) {
@@ -47,7 +60,7 @@ export default defineConfig({
 
   themeConfig: {
     // 网站标题和 Logo
-    logo: '/logo.svg',
+    logo: `${base}logo.svg`,
     siteTitle: 'Datawhale 成员可视化',
 
     // 导航栏

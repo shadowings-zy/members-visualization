@@ -50,7 +50,19 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
-      - name: Fetch latest member data
+      - name: Check if data exists
+        id: check-data
+        run: |
+          if [ -f "data/members.csv" ]; then
+            echo "data-exists=true" >> $GITHUB_OUTPUT
+            echo "✅ 使用现有数据文件"
+          else
+            echo "data-exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️ 数据文件不存在，将拉取新数据"
+          fi
+
+      - name: Fetch latest member data (only if no data exists)
+        if: steps.check-data.outputs.data-exists == 'false'
         run: python scripts/fetch-members.py
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -58,7 +70,9 @@ jobs:
         continue-on-error: true
 
       - name: Build with VitePress
-        run: npm run docs:build
+        run: |
+          npm run copy-data
+          npx vitepress build docs --base /members-visualization/
         env:
           NODE_ENV: production
 
