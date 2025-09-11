@@ -57,8 +57,10 @@ onMounted(async () => {
     // 解析 CSV 数据（处理带引号的字段）
     const lines = text.trim().split('\n')
     const headers = parseCSVLine(lines[0])
-    const parsedMembers = lines.slice(1).map(line => {
+
+    const parsedMembers = lines.slice(1).map((line, index) => {
       const values = parseCSVLine(line)
+
       const obj = {}
       headers.forEach((h, i) => {
         obj[h] = values[i] || ''
@@ -77,27 +79,46 @@ onMounted(async () => {
       return obj
     })
 
-// CSV解析函数（处理带引号的字段）
+// 更强健的CSV解析函数
 function parseCSVLine(line) {
   const result = []
   let current = ''
   let inQuotes = false
+  let i = 0
 
-  for (let i = 0; i < line.length; i++) {
+  while (i < line.length) {
     const char = line[i]
 
     if (char === '"') {
-      inQuotes = !inQuotes
+      if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+        // 处理转义的双引号 ""
+        current += '"'
+        i += 2
+        continue
+      } else {
+        // 切换引号状态
+        inQuotes = !inQuotes
+      }
     } else if (char === ',' && !inQuotes) {
+      // 字段分隔符
       result.push(current.trim())
       current = ''
     } else {
       current += char
     }
+    i++
   }
 
+  // 添加最后一个字段
   result.push(current.trim())
-  return result
+
+  // 清理字段值（移除首尾引号）
+  return result.map(field => {
+    if (field.startsWith('"') && field.endsWith('"')) {
+      return field.slice(1, -1)
+    }
+    return field
+  })
 }
 
     members.value = parsedMembers
@@ -116,6 +137,13 @@ function parseCSVLine(line) {
     domainCount.value = domainCountData
     console.log('Domain count:', domainCount.value)
 
+    // 先设置loading为false，让DOM渲染
+    loading.value = false
+
+    // 等待DOM渲染完成
+    await nextTick()
+    await new Promise(resolve => setTimeout(resolve, 100))
+
     // 动态加载词云插件
     try {
       await import('echarts-wordcloud')
@@ -128,29 +156,42 @@ function parseCSVLine(line) {
     // 等待DOM更新后再初始化图表
     await nextTick()
 
-    if (!pieRef.value) {
-      console.error('饼图容器未找到，等待DOM渲染...')
-      // 延迟重试
-      setTimeout(() => {
-        if (pieRef.value) {
-          initPieChart()
-        }
-      }, 100)
-      return
+    // 使用更可靠的重试机制
+    const initPieChartWithRetry = async (retries = 5) => {
+      if (!pieRef.value && retries > 0) {
+        console.log(`饼图容器未找到，等待DOM渲染... (剩余重试: ${retries})`)
+        await new Promise(resolve => setTimeout(resolve, 200))
+        return initPieChartWithRetry(retries - 1)
+      }
+
+      if (!pieRef.value) {
+        console.error('饼图容器最终未找到，跳过饼图初始化')
+        return
+      }
+
+      initPieChart()
     }
 
-    initPieChart()
-
     function initPieChart() {
-      if (pieChart) {
-        pieChart.dispose()
-      }
-      const pieData = Object.entries(domainCount.value).map(([k, v]) => ({
-        name: k,
-        value: v
-      })).sort((a, b) => b.value - a.value)
+      try {
+        if (pieChart) {
+          pieChart.dispose()
+        }
 
-      pieChart.setOption({
+        // 重新初始化图表实例
+        pieChart = echarts.init(pieRef.value)
+
+        if (!pieChart) {
+          console.error('饼图初始化失败')
+          return
+        }
+
+        const pieData = Object.entries(domainCount.value).map(([k, v]) => ({
+          name: k,
+          value: v
+        })).sort((a, b) => b.value - a.value)
+
+        pieChart.setOption({
         title: {
           text: '研究方向分布',
           subtext: `共 ${stats.value.totalDomains} 个研究方向`,
@@ -228,14 +269,28 @@ function parseCSVLine(line) {
           }
         ]
       })
+      } catch (error) {
+        console.error('饼图初始化出错:', error)
+      }
     }
+
+    // 启动饼图初始化
+    await initPieChartWithRetry()
 
     // ---------------- 增强柱状图 ----------------
     if (!barRef.value) {
-      console.error('柱状图容器未找到')
-      return
-    }
-    barChart = echarts.init(barRef.value)
+      console.warn('柱状图容器未找到，跳过柱状图初始化')
+    } else {
+      try {
+        if (barChart) {
+          barChart.dispose()
+        }
+        barChart = echarts.init(barRef.value)
+
+        if (!barChart) {
+          console.error('柱状图初始化失败')
+          return
+        }
     const domainEntries = Object.entries(domainCount.value).sort((a, b) => b[1] - a[1])
 
     barChart.setOption({
@@ -348,6 +403,10 @@ function parseCSVLine(line) {
         return idx * 50
       }
     })
+      } catch (error) {
+        console.error('柱状图初始化出错:', error)
+      }
+    }
 
     // ---------------- 词云图 ----------------
     if (wordCloudLoaded.value && wordCloudRef.value) {
@@ -460,10 +519,15 @@ function parseCSVLine(line) {
     })
 
     if (!networkRef.value) {
-      console.error('网络图容器未找到')
-      return
-    }
-    networkChart = echarts.init(networkRef.value)
+      console.warn('网络图容器未找到，跳过网络图初始化')
+    } else {
+      try {
+        networkChart = echarts.init(networkRef.value)
+
+        if (!networkChart) {
+          console.error('网络图初始化失败')
+          return
+        }
     networkChart.setOption({
       title: {
         text: '成员与研究方向关系网络',
@@ -555,13 +619,22 @@ function parseCSVLine(line) {
         }
       ]
     })
+      } catch (error) {
+        console.error('网络图初始化出错:', error)
+      }
+    }
 
     // ---------------- 趋势分析图 ----------------
     if (!trendRef.value) {
-      console.error('趋势图容器未找到')
-      return
-    }
-    trendChart = echarts.init(trendRef.value)
+      console.warn('趋势图容器未找到，跳过趋势图初始化')
+    } else {
+      try {
+        trendChart = echarts.init(trendRef.value)
+
+        if (!trendChart) {
+          console.error('趋势图初始化失败')
+          return
+        }
 
     // 模拟趋势数据（实际项目中可以从历史数据获取）
     const trendData = Object.keys(domainCount.value).map(domain => ({
@@ -636,6 +709,10 @@ function parseCSVLine(line) {
         }
       }))
     })
+      } catch (error) {
+        console.error('趋势图初始化出错:', error)
+      }
+    }
 
     // 响应式处理
     const handleResize = () => {
@@ -646,8 +723,6 @@ function parseCSVLine(line) {
       trendChart?.resize()
     }
     window.addEventListener('resize', handleResize)
-
-    loading.value = false
 
   } catch (err) {
     console.error('Error loading data:', err)

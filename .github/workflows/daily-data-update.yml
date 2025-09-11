@@ -31,11 +31,21 @@ jobs:
           node-version: 18
           cache: npm
 
-      - name: Install dependencies
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests python-dotenv
+
+      - name: Install Node dependencies
         run: npm ci
 
       - name: Fetch latest member data
-        run: npm run fetch-data
+        run: python scripts/fetch-members.py
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ORG: datawhalechina
@@ -43,11 +53,12 @@ jobs:
       - name: Check for data changes
         id: check-changes
         run: |
-          if git diff --quiet data/members.csv; then
-            echo "No changes in member data"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes in member data or avatars"
             echo "changes=false" >> $GITHUB_OUTPUT
           else
-            echo "Member data has changed"
+            echo "Member data or avatars have changed"
             echo "changes=true" >> $GITHUB_OUTPUT
           fi
 
@@ -56,8 +67,8 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add data/members.csv
-          git commit -m "🤖 Auto-update member data - $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          git add data/members.csv docs/public/avatars/
+          git commit -m "🤖 Auto-update member data and avatars - $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
           git push
 
       - name: Build with VitePress

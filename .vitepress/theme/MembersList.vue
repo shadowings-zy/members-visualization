@@ -75,27 +75,46 @@ const loadMembers = async () => {
       return obj
     })
 
-// CSV解析函数（处理带引号的字段）
+// 更强健的CSV解析函数
 function parseCSVLine(line) {
   const result = []
   let current = ''
   let inQuotes = false
+  let i = 0
 
-  for (let i = 0; i < line.length; i++) {
+  while (i < line.length) {
     const char = line[i]
 
     if (char === '"') {
-      inQuotes = !inQuotes
+      if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+        // 处理转义的双引号 ""
+        current += '"'
+        i += 2
+        continue
+      } else {
+        // 切换引号状态
+        inQuotes = !inQuotes
+      }
     } else if (char === ',' && !inQuotes) {
+      // 字段分隔符
       result.push(current.trim())
       current = ''
     } else {
       current += char
     }
+    i++
   }
 
+  // 添加最后一个字段
   result.push(current.trim())
-  return result
+
+  // 清理字段值（移除首尾引号）
+  return result.map(field => {
+    if (field.startsWith('"') && field.endsWith('"')) {
+      return field.slice(1, -1)
+    }
+    return field
+  })
 }
 
     members.value = parsedMembers
