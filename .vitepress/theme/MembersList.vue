@@ -53,17 +53,50 @@ const loadMembers = async () => {
     
     const text = await response.text()
     const lines = text.trim().split('\n')
-    const headers = lines[0].split(',')
-    
+    const headers = parseCSVLine(lines[0])
+
     const parsedMembers = lines.slice(1).map(line => {
-      const values = line.split(',')
+      const values = parseCSVLine(line)
       const obj = {}
       headers.forEach((h, i) => {
-        obj[h] = values[i] ? values[i].replace(/"/g, '') : ''
+        obj[h] = values[i] || ''
       })
-      obj.domain = obj.domain ? obj.domain.split(';').map(d => d.trim()) : []
+
+      // 处理特殊字段
+      obj.domain = obj.domain ? obj.domain.split(';').map(d => d.trim()).filter(d => d) : []
+      obj.repositories = obj.repositories ? obj.repositories.split(';').map(r => r.trim()).filter(r => r) : []
+
+      // 转换数值字段
+      obj.public_repos = parseInt(obj.public_repos) || 0
+      obj.total_stars = parseInt(obj.total_stars) || 0
+      obj.followers = parseInt(obj.followers) || 0
+      obj.following = parseInt(obj.following) || 0
+
       return obj
     })
+
+// CSV解析函数（处理带引号的字段）
+function parseCSVLine(line) {
+  const result = []
+  let current = ''
+  let inQuotes = false
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
+
+    if (char === '"') {
+      inQuotes = !inQuotes
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim())
+      current = ''
+    } else {
+      current += char
+    }
+  }
+
+  result.push(current.trim())
+  return result
+}
 
     members.value = parsedMembers
     loading.value = false
@@ -176,15 +209,17 @@ onMounted(() => {
 .search-input {
   width: 100%;
   padding: 12px 16px 12px 44px;
-  border: 2px solid #e1e5e9;
+  border: 2px solid var(--vp-c-border);
   border-radius: 8px;
   font-size: 16px;
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
   transition: border-color 0.3s ease;
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #0366d6;
+  border-color: var(--vp-c-brand-1);
 }
 
 .search-icon {
@@ -192,7 +227,7 @@ onMounted(() => {
   left: 16px;
   top: 50%;
   transform: translateY(-50%);
-  color: #666;
+  color: var(--vp-c-text-2);
 }
 
 .filter-box {
@@ -202,46 +237,49 @@ onMounted(() => {
 .domain-select {
   width: 100%;
   padding: 12px 16px;
-  border: 2px solid #e1e5e9;
+  border: 2px solid var(--vp-c-border);
   border-radius: 8px;
   font-size: 16px;
-  background: white;
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
   cursor: pointer;
   transition: border-color 0.3s ease;
 }
 
 .domain-select:focus {
   outline: none;
-  border-color: #0366d6;
+  border-color: var(--vp-c-brand-1);
 }
 
 .clear-btn {
   padding: 12px 20px;
-  background: #f1f3f4;
-  border: none;
+  background: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-border);
   border-radius: 8px;
-  color: #5f6368;
+  color: var(--vp-c-text-2);
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .clear-btn:hover {
-  background: #e8eaed;
+  background: var(--vp-c-bg-mute);
+  border-color: var(--vp-c-brand-1);
+  color: var(--vp-c-brand-1);
 }
 
 .results-info {
   margin-bottom: 20px;
   padding: 12px 16px;
-  background: #f8f9fa;
+  background: var(--vp-c-bg-soft);
   border-radius: 8px;
-  border-left: 4px solid #0366d6;
+  border-left: 4px solid var(--vp-c-brand-1);
 }
 
 .results-info p {
   margin: 0;
-  color: #333;
+  color: var(--vp-c-text-1);
   font-size: 14px;
 }
 
@@ -250,24 +288,23 @@ onMounted(() => {
   padding: 60px 20px;
   border-radius: 12px;
   margin: 20px 0;
+  background: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-border);
+  color: var(--vp-c-text-1);
 }
 
 .loading {
-  background: #f0f9ff;
-  border: 1px solid #bae6fd;
-  color: #0369a1;
+  border-color: var(--vp-c-brand-1);
+  color: var(--vp-c-brand-1);
 }
 
 .error {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #dc2626;
+  border-color: var(--vp-c-danger-1);
+  color: var(--vp-c-danger-1);
 }
 
 .no-results {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  color: #6b7280;
+  color: var(--vp-c-text-2);
 }
 
 .members-grid {

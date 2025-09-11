@@ -43,8 +43,8 @@ onMounted(async () => {
     await nextTick()
 
     // 动态获取 CSV 数据路径，适配开发和生产环境
-    const basePath = '/members-visualization/'
-    const csvPath = `${basePath}data/members.csv`
+    const basePath = (import.meta.env.BASE_URL || '/').replace(/\/?$/, '/')
+    const csvPath = `${basePath}data/members.csv`.replace('//', '/')
 
     console.log('Fetching data from:', csvPath)
 
@@ -54,19 +54,51 @@ onMounted(async () => {
     }
     const text = await res.text()
 
-    // 解析 CSV 数据
+    // 解析 CSV 数据（处理带引号的字段）
     const lines = text.trim().split('\n')
-    const headers = lines[0].split(',')
+    const headers = parseCSVLine(lines[0])
     const parsedMembers = lines.slice(1).map(line => {
-      const values = line.split(',')
+      const values = parseCSVLine(line)
       const obj = {}
       headers.forEach((h, i) => {
-        obj[h] = values[i] ? values[i].replace(/"/g, '') : ''
+        obj[h] = values[i] || ''
       })
-      // 处理领域数据，按分号分割
-      obj.domain = obj.domain ? obj.domain.split(';').map(d => d.trim()) : []
+
+      // 处理特殊字段
+      obj.domain = obj.domain ? obj.domain.split(';').map(d => d.trim()).filter(d => d) : []
+      obj.repositories = obj.repositories ? obj.repositories.split(';').map(r => r.trim()).filter(r => r) : []
+
+      // 转换数值字段
+      obj.public_repos = parseInt(obj.public_repos) || 0
+      obj.total_stars = parseInt(obj.total_stars) || 0
+      obj.followers = parseInt(obj.followers) || 0
+      obj.following = parseInt(obj.following) || 0
+
       return obj
     })
+
+// CSV解析函数（处理带引号的字段）
+function parseCSVLine(line) {
+  const result = []
+  let current = ''
+  let inQuotes = false
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
+
+    if (char === '"') {
+      inQuotes = !inQuotes
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim())
+      current = ''
+    } else {
+      current += char
+    }
+  }
+
+  result.push(current.trim())
+  return result
+}
 
     members.value = parsedMembers
     console.log('Parsed members:', members.value)
@@ -93,94 +125,110 @@ onMounted(async () => {
     }
 
     // ---------------- 增强饼图 ----------------
+    // 等待DOM更新后再初始化图表
+    await nextTick()
+
     if (!pieRef.value) {
-      console.error('饼图容器未找到')
+      console.error('饼图容器未找到，等待DOM渲染...')
+      // 延迟重试
+      setTimeout(() => {
+        if (pieRef.value) {
+          initPieChart()
+        }
+      }, 100)
       return
     }
-    pieChart = echarts.init(pieRef.value)
-    const pieData = Object.entries(domainCount.value).map(([k, v]) => ({
-      name: k,
-      value: v
-    })).sort((a, b) => b.value - a.value)
 
-    pieChart.setOption({
-      title: {
-        text: '研究方向分布',
-        subtext: `共 ${stats.value.totalDomains} 个研究方向`,
-        left: 'center',
-        textStyle: {
-          fontSize: 20,
-          fontWeight: 'bold',
-          color: '#333'
-        },
-        subtextStyle: {
-          fontSize: 14,
-          color: '#666'
-        }
-      },
-      tooltip: {
-        trigger: 'item',
-        formatter: function(params) {
-          const percent = params.percent
-          const value = params.value
-          return `${params.seriesName}<br/>${params.name}: ${value} 人 (${percent}%)`
-        },
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        borderColor: '#777',
-        borderWidth: 1,
-        textStyle: {
-          color: '#fff'
-        }
-      },
-      legend: {
-        orient: 'vertical',
-        left: 'left',
-        top: 'middle',
-        itemGap: 12,
-        textStyle: {
-          fontSize: 12
-        }
-      },
-      series: [
-        {
-          name: '研究方向',
-          type: 'pie',
-          radius: ['40%', '70%'],
-          center: ['60%', '50%'],
-          avoidLabelOverlap: false,
-          itemStyle: {
-            borderRadius: 8,
-            borderColor: '#fff',
-            borderWidth: 2
+    initPieChart()
+
+    function initPieChart() {
+      if (pieChart) {
+        pieChart.dispose()
+      }
+      const pieData = Object.entries(domainCount.value).map(([k, v]) => ({
+        name: k,
+        value: v
+      })).sort((a, b) => b.value - a.value)
+
+      pieChart.setOption({
+        title: {
+          text: '研究方向分布',
+          subtext: `共 ${stats.value.totalDomains} 个研究方向`,
+          left: 'center',
+          textStyle: {
+            fontSize: 20,
+            fontWeight: 'bold',
+            color: '#333'
           },
-          label: {
-            show: false,
-            position: 'center'
-          },
-          emphasis: {
-            label: {
-              show: true,
-              fontSize: 16,
-              fontWeight: 'bold'
-            },
-            itemStyle: {
-              shadowBlur: 20,
-              shadowOffsetX: 0,
-              shadowColor: 'rgba(0, 0, 0, 0.5)'
-            }
-          },
-          labelLine: {
-            show: false
-          },
-          data: pieData,
-          animationType: 'scale',
-          animationEasing: 'elasticOut',
-          animationDelay: function (idx) {
-            return Math.random() * 200
+          subtextStyle: {
+            fontSize: 14,
+            color: '#666'
           }
-        }
-      ]
-    })
+        },
+        tooltip: {
+          trigger: 'item',
+          formatter: function(params) {
+            const percent = params.percent
+            const value = params.value
+            return `${params.seriesName}<br/>${params.name}: ${value} 人 (${percent}%)`
+          },
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          borderColor: '#777',
+          borderWidth: 1,
+          textStyle: {
+            color: '#fff'
+          }
+        },
+        legend: {
+          orient: 'vertical',
+          left: 'left',
+          top: 'middle',
+          itemGap: 12,
+          textStyle: {
+            fontSize: 12
+          }
+        },
+        series: [
+          {
+            name: '研究方向',
+            type: 'pie',
+            radius: ['40%', '70%'],
+            center: ['60%', '50%'],
+            avoidLabelOverlap: false,
+            itemStyle: {
+              borderRadius: 8,
+              borderColor: '#fff',
+              borderWidth: 2
+            },
+            label: {
+              show: false,
+              position: 'center'
+            },
+            emphasis: {
+              label: {
+                show: true,
+                fontSize: 16,
+                fontWeight: 'bold'
+              },
+              itemStyle: {
+                shadowBlur: 20,
+                shadowOffsetX: 0,
+                shadowColor: 'rgba(0, 0, 0, 0.5)'
+              }
+            },
+            labelLine: {
+              show: false
+            },
+            data: pieData,
+            animationType: 'scale',
+            animationEasing: 'elasticOut',
+            animationDelay: function (idx) {
+              return Math.random() * 200
+            }
+          }
+        ]
+      })
+    }
 
     // ---------------- 增强柱状图 ----------------
     if (!barRef.value) {

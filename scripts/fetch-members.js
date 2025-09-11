@@ -106,16 +106,42 @@ async function fetchAPI(url, retries = 3, delay = 1000) {
 }
 
 /**
- * 获取组织成员列表
+ * 获取组织成员列表（支持分页）
  */
 async function getOrgMembers(orgName) {
   console.log(`正在获取组织 ${orgName} 的成员列表...`);
 
-  const url = `${CONFIG.API_BASE}/orgs/${orgName}/members?per_page=100`;
-  const members = await fetchAPI(url);
+  const allMembers = [];
+  let page = 1;
+  const perPage = 100;
 
-  console.log(`找到 ${members.length} 个成员`);
-  return members;
+  while (true) {
+    const url = `${CONFIG.API_BASE}/orgs/${orgName}/members?per_page=${perPage}&page=${page}`;
+    const members = await fetchAPI(url);
+
+    if (!members || members.length === 0) {
+      break;
+    }
+
+    allMembers.push(...members);
+    console.log(`获取第 ${page} 页：${members.length} 个成员`);
+
+    // 如果返回的成员数少于每页限制，说明已经是最后一页
+    if (members.length < perPage) {
+      break;
+    }
+
+    page++;
+
+    // 安全限制：最多获取10页（1000个成员）
+    if (page > 10) {
+      console.log('⚠️ 达到页数限制，停止获取');
+      break;
+    }
+  }
+
+  console.log(`总共找到 ${allMembers.length} 个成员`);
+  return allMembers;
 }
 
 /**
@@ -171,7 +197,7 @@ function inferDomains(repos, userBio = '') {
     });
 
     // 根据仓库语言推断
-    if (repo.language) {
+    if (repo.language && typeof repo.language === 'string') {
       const lang = repo.language.toLowerCase();
       if (lang === 'python' || lang === 'jupyter notebook') {
         domains.add('机器学习');
@@ -290,7 +316,8 @@ async function main() {
 
     // 处理每个成员
     const processedMembers = [];
-    const maxMembers = Math.min(orgMembers.length, 50); // 增加处理数量
+    const maxMembers = Math.min(orgMembers.length, 100); // 处理更多成员
+    console.log(`准备处理 ${maxMembers} 个成员（总共 ${orgMembers.length} 个）`);
 
     for (let i = 0; i < maxMembers; i++) {
       const member = orgMembers[i];

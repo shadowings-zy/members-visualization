@@ -9,71 +9,37 @@ const props = defineProps({
 })
 
 const githubData = ref(null)
-const loading = ref(true)
+const loading = ref(true)  // 保持兼容性，但会在mounted中设为false
 const error = ref(null)
 
-// 从 GitHub URL 提取用户名
-const getGithubUsername = (url) => {
-  const match = url.match(/github\.com\/([^\/]+)/)
-  return match ? match[1] : null
-}
+// 注释：已移除实时GitHub API调用，改为使用本地CSV数据
 
-// 获取 GitHub 用户数据
-const fetchGithubData = async (username) => {
-  try {
-    const response = await fetch(`https://api.github.com/users/${username}`)
-    if (!response.ok) {
-      // 如果是403错误（速率限制），返回基本信息而不是null
-      if (response.status === 403) {
-        console.warn(`GitHub API 速率限制，使用基本信息显示 ${username}`)
-        return {
-          login: username,
-          avatar_url: `https://github.com/${username}.png`,
-          html_url: `https://github.com/${username}`,
-          name: username,
-          bio: '由于API限制，无法获取详细信息',
-          public_repos: 0,
-          followers: 0,
-          following: 0,
-          repos: [],
-          totalStars: 0
-        }
-      }
-      throw new Error(`HTTP ${response.status}`)
-    }
-    const userData = await response.json()
-
-    // 获取仓库数据
-    const reposResponse = await fetch(`https://api.github.com/users/${username}/repos?sort=updated&per_page=10`)
-    const repos = reposResponse.ok ? await reposResponse.json() : []
-
-    return {
-      ...userData,
-      repos: repos,
-      totalStars: repos.reduce((sum, repo) => sum + repo.stargazers_count, 0)
-    }
-  } catch (err) {
-    console.warn(`获取 ${username} 的 GitHub 数据失败:`, err)
-    // 返回基本信息而不是null
-    return {
-      login: username,
-      avatar_url: `https://github.com/${username}.png`,
-      html_url: `https://github.com/${username}`,
-      name: username,
-      bio: '无法获取GitHub信息',
-      public_repos: 0,
-      followers: 0,
-      following: 0,
-      repos: [],
-      totalStars: 0
-    }
+// 获取头像URL（优先使用本地缓存）
+const getAvatarUrl = (member) => {
+  // 如果有本地头像路径，使用本地头像
+  if (member.avatar && member.avatar.startsWith('avatars/')) {
+    const basePath = import.meta.env.BASE_URL || '/'
+    return `${basePath}${member.avatar}`.replace('//', '/')
   }
+  // 否则使用GitHub头像URL或默认头像
+  return member.avatar || `https://github.com/${member.id}.png`
 }
 
-onMounted(async () => {
-  const username = getGithubUsername(props.member.github)
-  if (username) {
-    githubData.value = await fetchGithubData(username)
+onMounted(() => {
+  // 直接使用CSV中的数据，不再实时调用GitHub API
+  githubData.value = {
+    login: props.member.id,
+    avatar_url: getAvatarUrl(props.member),
+    html_url: props.member.github,
+    name: props.member.name || props.member.id,
+    bio: props.member.bio || '',
+    location: props.member.location || '',
+    company: props.member.company || '',
+    public_repos: props.member.public_repos || 0,
+    followers: props.member.followers || 0,
+    following: props.member.following || 0,
+    totalStars: props.member.total_stars || 0,
+    repos: props.member.repositories || []  // 参与的组织仓库
   }
   loading.value = false
 })
@@ -133,20 +99,23 @@ onMounted(async () => {
     </div>
 
     <div v-if="githubData?.repos?.length" class="recent-repos">
-      <h4>最近更新的仓库</h4>
+      <h4>参与的组织仓库</h4>
       <div class="repo-list">
-        <div 
-          v-for="repo in githubData.repos.slice(0, 3)" 
-          :key="repo.id"
+        <div
+          v-for="repoName in githubData.repos.slice(0, 5)"
+          :key="repoName"
           class="repo-item"
         >
-          <a :href="repo.html_url" target="_blank" rel="noopener noreferrer" class="repo-name">
-            {{ repo.name }}
+          <a
+            :href="`https://github.com/datawhalechina/${repoName}`"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="repo-name"
+          >
+            {{ repoName }}
           </a>
-          <p v-if="repo.description" class="repo-description">{{ repo.description }}</p>
           <div class="repo-meta">
-            <span v-if="repo.language" class="repo-language">{{ repo.language }}</span>
-            <span class="repo-stars">⭐ {{ repo.stargazers_count }}</span>
+            <span class="repo-org">datawhalechina</span>
           </div>
         </div>
       </div>
@@ -156,17 +125,18 @@ onMounted(async () => {
 
 <style scoped>
 .member-card {
-  background: white;
+  background: var(--vp-c-bg);
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 10px var(--vp-shadow-1);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
-  border: 1px solid #e1e5e9;
+  border: 1px solid var(--vp-c-border);
 }
 
 .member-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 20px var(--vp-shadow-2);
+  border-color: var(--vp-c-brand-1);
 }
 
 .member-header {
@@ -213,18 +183,18 @@ onMounted(async () => {
 }
 
 .member-name a {
-  color: #333;
+  color: var(--vp-c-text-1);
   text-decoration: none;
   transition: color 0.3s ease;
 }
 
 .member-name a:hover {
-  color: #0366d6;
+  color: var(--vp-c-brand-1);
 }
 
 .member-bio {
   margin: 0 0 12px 0;
-  color: #666;
+  color: var(--vp-c-text-2);
   font-size: 0.9rem;
   line-height: 1.4;
 }
@@ -236,12 +206,13 @@ onMounted(async () => {
 }
 
 .domain-tag {
-  background: #f1f3f4;
-  color: #5f6368;
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-2);
   padding: 4px 8px;
   border-radius: 12px;
   font-size: 0.8rem;
   font-weight: 500;
+  border: 1px solid var(--vp-c-border);
 }
 
 .github-stats {
@@ -250,8 +221,9 @@ onMounted(async () => {
   gap: 12px;
   margin-bottom: 16px;
   padding: 16px;
-  background: #f8f9fa;
+  background: var(--vp-c-bg-soft);
   border-radius: 8px;
+  border: 1px solid var(--vp-c-border);
 }
 
 .stat-item {
@@ -262,20 +234,20 @@ onMounted(async () => {
   display: block;
   font-size: 1.2rem;
   font-weight: bold;
-  color: #333;
+  color: var(--vp-c-text-1);
 }
 
 .stat-label {
   display: block;
   font-size: 0.8rem;
-  color: #666;
+  color: var(--vp-c-text-2);
   margin-top: 2px;
 }
 
 .recent-repos h4 {
   margin: 0 0 12px 0;
   font-size: 1rem;
-  color: #333;
+  color: var(--vp-c-text-1);
 }
 
 .repo-list {
@@ -286,13 +258,14 @@ onMounted(async () => {
 
 .repo-item {
   padding: 12px;
-  background: #f8f9fa;
+  background: var(--vp-c-bg-soft);
   border-radius: 8px;
-  border-left: 3px solid #0366d6;
+  border-left: 3px solid var(--vp-c-brand-1);
+  border: 1px solid var(--vp-c-border);
 }
 
 .repo-name {
-  color: #0366d6;
+  color: var(--vp-c-brand-1);
   text-decoration: none;
   font-weight: 600;
   font-size: 0.9rem;
@@ -304,7 +277,7 @@ onMounted(async () => {
 
 .repo-description {
   margin: 4px 0;
-  color: #666;
+  color: var(--vp-c-text-2);
   font-size: 0.8rem;
   line-height: 1.3;
 }
@@ -318,15 +291,23 @@ onMounted(async () => {
 
 .repo-language {
   font-size: 0.8rem;
-  color: #666;
-  background: #e1e4e8;
+  color: var(--vp-c-text-2);
+  background: var(--vp-c-bg-mute);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.repo-org {
+  font-size: 0.8rem;
+  color: var(--vp-c-text-2);
+  background: var(--vp-c-bg-mute);
   padding: 2px 6px;
   border-radius: 4px;
 }
 
 .repo-stars {
   font-size: 0.8rem;
-  color: #666;
+  color: var(--vp-c-text-2);
 }
 
 @media (max-width: 768px) {

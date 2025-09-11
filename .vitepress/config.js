@@ -14,13 +14,9 @@ export default defineConfig({
 
   // 构建配置
   vite: {
-    base: '/members-visualization/',
-    build: {
-      rollupOptions: {
-        output: {
-          manualChunks: undefined
-        }
-      }
+    server: {
+      port: 5173,
+      host: true
     }
   },
 
@@ -32,8 +28,8 @@ export default defineConfig({
     ['meta', { property: 'og:title', content: 'Datawhale 成员可视化' }],
     ['meta', { property: 'og:description', content: 'Datawhale 组织成员研究方向可视化展示平台' }],
     ['meta', { property: 'og:type', content: 'website' }],
-    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/members-visualization/logo.svg' }],
-    ['link', { rel: 'apple-touch-icon', href: '/members-visualization/logo.svg' }],
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
+    ['link', { rel: 'apple-touch-icon', href: '/logo.svg' }],
     // GitHub Pages SPA 路由处理
     ['script', {}, `
       (function(l) {
@@ -155,18 +151,6 @@ export default defineConfig({
     returnToTopLabel: '回到顶部'
   },
 
-  // 确保静态资源能正确访问
-  assetsDir: 'assets',
 
-  // 开发服务器配置
-  server: {
-    port: 5173,
-    host: true
-  },
 
-  // 构建优化
-  build: {
-    minify: 'terser',
-    chunkSizeWarningLimit: 1000
-  }
 })
