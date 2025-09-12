@@ -15,26 +15,8 @@ module.exports = {
   // 构建配置
   vite: {
     base,
-    server: {
-      port: 5173,
-      host: true
-    },
     build: {
-      chunkSizeWarningLimit: 1000,
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            echarts: ['echarts'],
-            'echarts-wordcloud': ['echarts-wordcloud']
-          }
-        }
-      }
-    },
-    optimizeDeps: {
-      include: ['echarts', 'echarts-wordcloud']
-    },
-    ssr: {
-      noExternal: ['echarts', 'echarts-wordcloud']
+      chunkSizeWarningLimit: 2000
     }
   },
 

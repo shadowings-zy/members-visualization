@@ -790,26 +790,9 @@ function parseCSVLine(line) {
     await nextTick()
     await new Promise(resolve => setTimeout(resolve, 100))
 
-    // 动态加载词云插件
-    try {
-      console.log('开始加载词云插件...')
-
-      // 使用更兼容的导入方式
-      if (typeof window !== 'undefined') {
-        // 客户端环境
-        const wordCloudModule = await import('echarts-wordcloud')
-        console.log('词云插件加载成功 (客户端)', wordCloudModule)
-      }
-
-      // 简化验证逻辑
-      wordCloudLoaded.value = true
-      console.log('词云插件已启用')
-    } catch (e) {
-      console.error('词云插件加载失败:', e)
-      // 即使加载失败也尝试继续，可能插件已经通过其他方式加载
-      wordCloudLoaded.value = true
-      console.warn('词云插件加载失败，但仍尝试渲染词云图')
-    }
+    // 临时禁用词云插件以避免构建卡住
+    console.log('词云插件已临时禁用')
+    wordCloudLoaded.value = false
 
     // ---------------- 增强饼图 ----------------
     // 等待DOM更新后再初始化图表
