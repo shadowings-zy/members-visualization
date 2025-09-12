@@ -407,13 +407,14 @@ const createNetworkChartOption = () => {
       text: '成员与研究方向关系网络',
       subtext: '节点大小反映连接数量，支持拖拽和缩放',
       left: 'center',
+      top: '2%',
       textStyle: {
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: 'bold',
         color: getThemeColors().textColor
       },
       subtextStyle: {
-        fontSize: 14,
+        fontSize: 12,
         color: isDark.value ? '#cccccc' : '#666666'
       }
     },
@@ -434,8 +435,8 @@ const createNetworkChartOption = () => {
     },
     legend: {
       data: ['成员', '研究方向'],
-      right: '2%',
-      top: '8%',
+      right: '3%',
+      top: '12%',
       orient: 'vertical',
       itemGap: 15,
       textStyle: {
@@ -444,13 +445,6 @@ const createNetworkChartOption = () => {
       },
       itemWidth: 14,
       itemHeight: 14
-    },
-    grid: {
-      left: '5%',
-      right: '15%',
-      top: '15%',
-      bottom: '10%',
-      containLabel: true
     },
     series: [{
       name: '关系网络',
@@ -466,9 +460,9 @@ const createNetworkChartOption = () => {
       focusNodeAdjacency: true,
       draggable: true,
       left: '5%',
-      right: '15%',
-      top: '15%',
-      bottom: '10%',
+      right: '18%',
+      top: '20%',
+      bottom: '8%',
       force: {
         repulsion: 800,
         gravity: 0.08,
@@ -788,9 +782,36 @@ function parseCSVLine(line) {
     await nextTick()
     await new Promise(resolve => setTimeout(resolve, 100))
 
-    // 临时禁用词云插件以避免构建卡住
-    console.log('词云插件已临时禁用')
-    wordCloudLoaded.value = false
+    // 重新启用词云插件，添加超时和错误处理
+    try {
+      console.log('开始加载词云插件...')
+
+      // 设置加载超时
+      const loadTimeout = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('词云插件加载超时')), 5000)
+      })
+
+      // 动态加载词云插件
+      const loadWordCloud = async () => {
+        if (typeof window !== 'undefined') {
+          // 客户端环境
+          const wordCloudModule = await import('echarts-wordcloud')
+          console.log('词云插件加载成功 (客户端)', wordCloudModule)
+          return true
+        }
+        return false
+      }
+
+      // 使用Promise.race来实现超时控制
+      await Promise.race([loadWordCloud(), loadTimeout])
+
+      wordCloudLoaded.value = true
+      console.log('词云插件已成功启用')
+    } catch (e) {
+      console.error('词云插件加载失败:', e)
+      wordCloudLoaded.value = false
+      console.warn('词云图将不会显示，但不影响其他功能')
+    }
 
     // ---------------- 增强饼图 ----------------
     // 等待DOM更新后再初始化图表
@@ -1142,10 +1163,14 @@ onUnmounted(() => {
 
 /* 网络图专用样式 */
 .chart[data-chart-type="network"] {
-  height: 800px;
-  min-height: 750px;
+  height: 750px;
+  min-height: 700px;
+  max-height: 750px;
   overflow: hidden;
   position: relative;
+  margin-bottom: 30px;
+  padding: 10px 0;
+  box-sizing: border-box;
 }
 
 /* 词云图专用样式 */

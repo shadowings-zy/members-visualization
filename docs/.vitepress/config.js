@@ -28,9 +28,7 @@ module.exports = {
     ['meta', { property: 'og:description', content: 'Datawhale 组织成员研究方向可视化展示平台' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['link', { rel: 'icon', type: 'image/png', href: `${base}logo.png` }],
-    ['link', { rel: 'apple-touch-icon', href: `${base}logo.png` }],
-    // GitHub Pages SPA 路由处理 - 暂时移除以解决构建问题
-    // ['script', {}, `...`]
+    ['link', { rel: 'apple-touch-icon', href: `${base}logo.png` }]
   ],
 
   themeConfig: {
@@ -78,25 +76,9 @@ module.exports = {
       copyright: 'Copyright © 2024 Datawhale 开源社区'
     },
 
-    // 搜索配置
+    // 搜索配置 - 暂时简化
     search: {
-      provider: 'local',
-      options: {
-        translations: {
-          button: {
-            buttonText: '搜索文档',
-            buttonAriaLabel: '搜索文档'
-          },
-          modal: {
-            noResultsText: '无法找到相关结果',
-            resetButtonTitle: '清除查询条件',
-            footer: {
-              selectText: '选择',
-              navigateText: '切换'
-            }
-          }
-        }
-      }
+      provider: 'local'
     },
 
     // 编辑链接
