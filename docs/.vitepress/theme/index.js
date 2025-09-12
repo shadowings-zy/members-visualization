@@ -11,6 +11,6 @@ export default {
     })
   },
   enhanceApp({ app, router, siteData }) {
-    // ...
+    // 应用增强配置
   }
 }

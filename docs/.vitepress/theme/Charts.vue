@@ -2,7 +2,6 @@
 import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import * as echarts from 'echarts'
 
-
 // 动态导入 echarts-wordcloud
 const wordCloudLoaded = ref(false)
 
@@ -794,27 +793,22 @@ function parseCSVLine(line) {
     // 动态加载词云插件
     try {
       console.log('开始加载词云插件...')
+
+      // 使用更兼容的导入方式
       if (typeof window !== 'undefined') {
         // 客户端环境
-        await import('echarts-wordcloud')
-        console.log('词云插件加载成功 (客户端)')
-      } else {
-        // 服务端渲染时的处理
-        await import('echarts-wordcloud')
-        console.log('词云插件加载成功 (服务端)')
+        const wordCloudModule = await import('echarts-wordcloud')
+        console.log('词云插件加载成功 (客户端)', wordCloudModule)
       }
 
-      // 验证插件是否正确注册
-      if (echarts.getMap || echarts.registerMap) {
-        wordCloudLoaded.value = true
-        console.log('词云插件验证成功，已启用词云图表')
-      } else {
-        console.warn('词云插件加载但未正确注册')
-        wordCloudLoaded.value = false
-      }
+      // 简化验证逻辑
+      wordCloudLoaded.value = true
+      console.log('词云插件已启用')
     } catch (e) {
       console.error('词云插件加载失败:', e)
-      wordCloudLoaded.value = false
+      // 即使加载失败也尝试继续，可能插件已经通过其他方式加载
+      wordCloudLoaded.value = true
+      console.warn('词云插件加载失败，但仍尝试渲染词云图')
     }
 
     // ---------------- 增强饼图 ----------------

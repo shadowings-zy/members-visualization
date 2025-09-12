@@ -69,10 +69,27 @@ jobs:
           GITHUB_ORG: datawhalechina
         continue-on-error: true
 
-      - name: Build with VitePress
+      - name: Clean build cache
         run: |
-          npm run copy-data
-          npx vitepress build docs --base /members-visualization/
+          rm -rf docs/.vitepress/.temp
+          rm -rf docs/.vitepress/cache
+          rm -rf docs/.vitepress/dist
+
+      - name: Debug environment
+        run: |
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          echo "VitePress version: $(npx vitepress --version)"
+          echo "Current directory: $(pwd)"
+          echo "Directory contents:"
+          ls -la
+          echo "Docs directory contents:"
+          ls -la docs/
+          echo "VitePress config exists:"
+          ls -la docs/.vitepress/
+
+      - name: Build with VitePress
+        run: npm run docs:build
         env:
           NODE_ENV: production
 

@@ -20,14 +20,21 @@ module.exports = {
       host: true
     },
     build: {
-      assetsDir: 'assets',
+      chunkSizeWarningLimit: 1000,
       rollupOptions: {
         output: {
-          assetFileNames: 'assets/[name].[hash].[ext]',
-          chunkFileNames: 'assets/chunks/[name].[hash].js',
-          entryFileNames: 'assets/[name].[hash].js'
+          manualChunks: {
+            echarts: ['echarts'],
+            'echarts-wordcloud': ['echarts-wordcloud']
+          }
         }
       }
+    },
+    optimizeDeps: {
+      include: ['echarts', 'echarts-wordcloud']
+    },
+    ssr: {
+      noExternal: ['echarts', 'echarts-wordcloud']
     }
   },
 
