@@ -14,7 +14,6 @@ module.exports = {
 
   // 构建配置
   vite: {
-    base,
     build: {
       chunkSizeWarningLimit: 2000
     }
@@ -28,26 +27,15 @@ module.exports = {
     ['meta', { property: 'og:title', content: 'Datawhale 成员可视化' }],
     ['meta', { property: 'og:description', content: 'Datawhale 组织成员研究方向可视化展示平台' }],
     ['meta', { property: 'og:type', content: 'website' }],
-    ['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}logo.svg` }],
-    ['link', { rel: 'apple-touch-icon', href: `${base}logo.svg` }],
-    // GitHub Pages SPA 路由处理
-    ['script', {}, `
-      (function(l) {
-        if (l.search[1] === '/' ) {
-          var decoded = l.search.slice(1).split('&').map(function(s) {
-            return s.replace(/~and~/g, '&')
-          }).join('?');
-          window.history.replaceState(null, null,
-              l.pathname.slice(0, -1) + decoded + l.hash
-          );
-        }
-      }(window.location))
-    `]
+    ['link', { rel: 'icon', type: 'image/png', href: `${base}logo.png` }],
+    ['link', { rel: 'apple-touch-icon', href: `${base}logo.png` }],
+    // GitHub Pages SPA 路由处理 - 暂时移除以解决构建问题
+    // ['script', {}, `...`]
   ],
 
   themeConfig: {
     // 网站标题和 Logo
-    logo: `${base}logo.png`,
+    logo: '/logo.png',
     siteTitle: 'Datawhale 成员可视化',
 
     // 导航栏

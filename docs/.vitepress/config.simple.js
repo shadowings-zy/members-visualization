@@ -10,26 +10,19 @@ module.exports = {
 
   // 最简化的构建配置
   vite: {
-    base,
     build: {
-      chunkSizeWarningLimit: 2000,
-      minify: 'terser',
-      terserOptions: {
-        compress: {
-          drop_console: true,
-          drop_debugger: true
-        }
-      }
+      chunkSizeWarningLimit: 2000
     }
   },
 
   head: [
     ['meta', { name: 'viewport', content: 'width=device-width, initial-scale=1.0' }],
-    ['link', { rel: 'icon', type: 'image/png', href: `${base}logo.png` }]
+    ['link', { rel: 'icon', type: 'image/png', href: `${base}logo.png` }],
+    ['link', { rel: 'apple-touch-icon', href: `${base}logo.png` }]
   ],
 
   themeConfig: {
-    logo: `${base}logo.png`,
+    logo: '/logo.png',
     siteTitle: 'Datawhale 成员可视化',
 
     nav: [

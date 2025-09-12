@@ -687,10 +687,8 @@ onMounted(async () => {
     await nextTick()
 
     // 动态获取 CSV 数据路径，适配开发和生产环境
-    const basePath = (typeof window !== 'undefined' && window.location.pathname.includes('/members-visualization/'))
-      ? '/members-visualization/'
-      : (import.meta.env.BASE_URL || '/').replace(/\/?$/, '/')
-    const csvPath = `${basePath}data/members.csv`.replace('//', '/')
+    const basePath = import.meta.env.BASE_URL || '/'
+    const csvPath = `${basePath}data/members.csv`.replace(/\/+/g, '/')
 
     console.log('Fetching data from:', csvPath)
 

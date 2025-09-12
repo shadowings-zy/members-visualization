@@ -10,10 +10,8 @@ const loading = ref(true)
 const loadData = async () => {
   try {
     // 根据环境动态获取base路径
-    const basePath = (typeof window !== 'undefined' && window.location.pathname.includes('/members-visualization/'))
-      ? '/members-visualization/'
-      : (import.meta.env.BASE_URL || '/').replace(/\/?$/, '/')
-    const csvPath = `${basePath}data/members.csv`.replace('//', '/')
+    const basePath = import.meta.env.BASE_URL || '/'
+    const csvPath = `${basePath}data/members.csv`.replace(/\/+/g, '/')
 
     const response = await fetch(csvPath)
     if (!response.ok) {
