@@ -1,9 +1,7 @@
-import { defineConfig } from 'vitepress'
-
 // 根据环境动态设置 base 路径
 const base = process.env.NODE_ENV === 'production' ? '/members-visualization/' : '/'
 
-export default defineConfig({
+module.exports = {
   title: 'Datawhale 成员可视化',
   description: 'Datawhale 组织成员研究方向可视化展示平台',
   base,
@@ -60,19 +58,18 @@ export default defineConfig({
 
   themeConfig: {
     // 网站标题和 Logo
-    logo: `${base}logo.svg`,
+    logo: `${base}logo.png`,
     siteTitle: 'Datawhale 成员可视化',
 
     // 导航栏
     nav: [
       { text: '🏠 首页', link: '/' },
-      { text: '📊 成员可视化', link: '/members' },
-      { text: '📖 使用指南', link: '/guide' },
-      { text: '📈 数据统计', link: '/stats' },
+      { text: '👥 成员页', link: '/members' },
+      { text: '📈 统计页', link: '/stats' },
       {
         text: '🔗 相关链接',
         items: [
-          { text: 'Datawhale 官网', link: 'https://datawhale.club/' },
+          { text: 'Datawhale 官网', link: 'https://www.datawhale.cn/' },
           { text: 'GitHub 组织', link: 'https://github.com/datawhalechina' },
           { text: '项目仓库', link: 'https://github.com/datawhalechina/members-visualization' }
         ]
@@ -85,18 +82,9 @@ export default defineConfig({
         {
           text: '📋 导航菜单',
           items: [
-            { text: '🏠 项目首页', link: '/' },
-            { text: '📊 成员可视化', link: '/members' },
-            { text: '📖 使用指南', link: '/guide' },
-            { text: '📈 数据统计', link: '/stats' }
-          ]
-        },
-        {
-          text: '📚 功能介绍',
-          items: [
-            { text: '🎯 项目特色', link: '/features' },
-            { text: '🛠️ 技术栈', link: '/tech-stack' },
-            { text: '🔄 数据更新', link: '/data-update' }
+            { text: '🏠 首页', link: '/' },
+            { text: '👥 成员页', link: '/members' },
+            { text: '📈 统计页', link: '/stats' }
           ]
         }
       ]
@@ -162,8 +150,5 @@ export default defineConfig({
 
     // 返回顶部
     returnToTopLabel: '回到顶部'
-  },
-
-
-
-})
+  }
+}

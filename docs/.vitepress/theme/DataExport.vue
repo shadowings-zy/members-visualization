@@ -1,27 +1,72 @@
 <script setup>
-import { ref, computed } from 'vue'
-
-const props = defineProps({
-  members: {
-    type: Array,
-    default: () => []
-  },
-  domainCount: {
-    type: Object,
-    default: () => ({})
-  }
-})
+import { ref, computed, onMounted } from 'vue'
 
 const isExporting = ref(false)
+const members = ref([])
+const domainCount = ref({})
+const loading = ref(true)
+
+// 加载数据
+const loadData = async () => {
+  try {
+    // 根据环境动态获取base路径
+    const basePath = (typeof window !== 'undefined' && window.location.pathname.includes('/members-visualization/'))
+      ? '/members-visualization/'
+      : (import.meta.env.BASE_URL || '/').replace(/\/?$/, '/')
+    const csvPath = `${basePath}data/members.csv`.replace('//', '/')
+
+    const response = await fetch(csvPath)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    const text = await response.text()
+
+    // 解析CSV数据
+    const lines = text.trim().split('\n')
+    const headers = lines[0].split(',').map(h => h.replace(/"/g, ''))
+
+    const parsedMembers = lines.slice(1).map(line => {
+      const values = line.split(',').map(v => v.replace(/"/g, ''))
+      const obj = {}
+      headers.forEach((h, i) => {
+        obj[h] = values[i] || ''
+      })
+      obj.domain = obj.domain ? obj.domain.split(';').map(d => d.trim()).filter(d => d) : []
+      return obj
+    })
+
+    members.value = parsedMembers
+
+    // 计算领域统计
+    const domainCountData = {}
+    parsedMembers.forEach(member => {
+      member.domain.forEach(domain => {
+        if (domain) {
+          domainCountData[domain] = (domainCountData[domain] || 0) + 1
+        }
+      })
+    })
+    domainCount.value = domainCountData
+
+  } catch (error) {
+    console.error('DataExport数据加载失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  loadData()
+})
 
 // 统计数据
 const stats = computed(() => {
-  const totalMembers = props.members.length
-  const totalDomains = Object.keys(props.domainCount).length
-  const avgDomainsPerMember = totalMembers > 0 ? 
-    (props.members.reduce((sum, m) => sum + m.domain.length, 0) / totalMembers).toFixed(2) : 0
-  
-  const domainStats = Object.entries(props.domainCount)
+  const totalMembers = members.value.length
+  const totalDomains = Object.keys(domainCount.value).length
+  const avgDomainsPerMember = totalMembers > 0 ?
+    (members.value.reduce((sum, m) => sum + m.domain.length, 0) / totalMembers).toFixed(2) : 0
+
+  const domainStats = Object.entries(domainCount.value)
     .sort((a, b) => b[1] - a[1])
     .map(([domain, count]) => ({
       domain,
@@ -47,7 +92,7 @@ const exportToCSV = () => {
     const headers = ['ID', '姓名', 'GitHub链接', '研究方向']
     const rows = [headers.join(',')]
     
-    props.members.forEach(member => {
+    members.value.forEach(member => {
       const row = [
         member.id,
         `"${member.name}"`,
@@ -93,7 +138,7 @@ const exportStatsToJSON = () => {
         leastPopularDomain: stats.value.leastPopularDomain
       },
       domainStatistics: stats.value.domainStats,
-      memberDetails: props.members.map(member => ({
+      memberDetails: members.value.map(member => ({
         id: member.id,
         name: member.name,
         github: member.github,

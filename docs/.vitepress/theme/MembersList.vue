@@ -43,7 +43,10 @@ const filteredMembers = computed(() => {
 // 加载成员数据
 const loadMembers = async () => {
   try {
-    const basePath = import.meta.env.BASE_URL || '/'
+    // 根据环境动态获取base路径
+    const basePath = (typeof window !== 'undefined' && window.location.pathname.includes('/members-visualization/'))
+      ? '/members-visualization/'
+      : (import.meta.env.BASE_URL || '/')
     const csvPath = `${basePath}data/members.csv`.replace('//', '/')
     
     const response = await fetch(csvPath)

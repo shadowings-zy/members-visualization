@@ -1,15 +1,11 @@
 # 成员可视化
 
 <script setup>
-import Charts from '../.vitepress/theme/Charts.vue'
-import MembersList from '../.vitepress/theme/MembersList.vue'
+import Charts from './.vitepress/theme/Charts.vue'
+import MembersList from './.vitepress/theme/MembersList.vue'
 </script>
 
-## 数据概览
 
-以下图表展示了组织成员的研究方向分布情况：
-
-<Charts />
 
 ## 成员详情
 

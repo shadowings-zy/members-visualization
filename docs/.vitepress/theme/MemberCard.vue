@@ -18,7 +18,10 @@ const error = ref(null)
 const getAvatarUrl = (member) => {
   // 如果有本地头像路径，使用本地头像
   if (member.avatar && member.avatar.startsWith('avatars/')) {
-    const basePath = import.meta.env.BASE_URL || '/'
+    // 根据环境动态获取base路径
+    const basePath = (typeof window !== 'undefined' && window.location.pathname.includes('/members-visualization/'))
+      ? '/members-visualization/'
+      : (import.meta.env.BASE_URL || '/')
     return `${basePath}${member.avatar}`.replace('//', '/')
   }
   // 否则使用GitHub头像URL或默认头像

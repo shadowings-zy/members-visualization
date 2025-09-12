@@ -6,7 +6,7 @@ hero:
   text: "组织成员研究方向展示平台"
   tagline: 基于现代化技术栈构建的智能数据可视化平台，实时展示 Datawhale 组织成员信息与研究方向分布
   image:
-    src: /logo.svg
+    src: /logo.png
     alt: Datawhale Logo
   actions:
     - theme: brand
