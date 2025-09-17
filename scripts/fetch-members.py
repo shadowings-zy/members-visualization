@@ -342,12 +342,10 @@ def infer_domains_from_repos(repo_names, user_bio='', user_repos=None):
         domains.add('深度学习')
     if any(keyword in search_text for keyword in ['nlp', 'natural-language', 'bert', 'transformer']):
         domains.add('NLP')
-    if any(keyword in search_text for keyword in ['recommendation', 'recommendation-system', 'ctr-prediction']):
+    if any(keyword in search_text for keyword in ['recommendation', 'recommendation-system', 'ctr-prediction', 'recommender-system']):
         domains.add('推荐系统')
     if any(keyword in search_text for keyword in ['cv', 'computer-vision', 'opencv', 'image', 'yolo']):
         domains.add('CV')
-    if any(keyword in search_text for keyword in ['data', 'analysis', 'visualization', 'pandas']):
-        domains.add('数据科学')
     if any(keyword in search_text for keyword in ['web', 'frontend', 'react', 'vue', 'javascript']):
         domains.add('前端开发')
     if any(keyword in search_text for keyword in ['gpt', 'llm', 'chatbot', 'llama']):
