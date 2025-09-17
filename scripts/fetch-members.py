@@ -45,6 +45,7 @@ CONFIG = {
         'computer-vision': 'CV',
         'natural-language-processing': 'NLP',
         'artificial-intelligence': '人工智能',
+        'llm': 'LLM',
         'data-science': '数据科学',
         'frontend': '前端开发',
         'backend': '后端开发',
@@ -301,8 +302,8 @@ def calculate_user_stats(user_details, user_repos):
 
     return stats
 
-def infer_domains_from_repos(repo_names, user_bio=''):
-    """根据仓库名称和用户简介推断研究方向"""
+def infer_domains_from_repos(repo_names, user_bio='', user_repos=None):
+    """根据仓库 topics、名称和用户简介推断研究方向"""
     domains = set()
 
     # 从用户简介中提取关键词
@@ -311,27 +312,46 @@ def infer_domains_from_repos(repo_names, user_bio=''):
         if key in text or value.lower() in text:
             domains.add(value)
 
-    # 从仓库名称中提取关键词
+    # 收集所有仓库的 topics
+    all_topics = []
+    if user_repos:
+        for repo in user_repos:
+            if isinstance(repo, dict) and 'topics' in repo:
+                topics = repo.get('topics', [])
+                if topics:
+                    all_topics.extend(topics)
+
+    # 从仓库 topics 中提取关键词（优先使用 topics）
+    topics_text = ' '.join(all_topics).lower()
+    for key, value in CONFIG['DEFAULT_DOMAINS'].items():
+        if key in topics_text or value.lower() in topics_text:
+            domains.add(value)
+
+    # 如果 topics 中没有找到足够信息，再从仓库名称中提取关键词作为补充
     repo_text = ' '.join(repo_names).lower()
     for key, value in CONFIG['DEFAULT_DOMAINS'].items():
         if key in repo_text or value.lower() in repo_text:
             domains.add(value)
 
-    # 根据常见项目名称模式推断
-    if any(keyword in repo_text for keyword in ['ml', 'machine-learning', 'sklearn']):
+    # 根据 topics 和仓库名称的常见模式推断（优先使用 topics）
+    search_text = topics_text if topics_text.strip() else repo_text
+
+    if any(keyword in search_text for keyword in ['ml', 'machine-learning', 'sklearn']):
         domains.add('机器学习')
-    if any(keyword in repo_text for keyword in ['dl', 'deep-learning', 'pytorch', 'tensorflow']):
+    if any(keyword in search_text for keyword in ['dl', 'deep-learning', 'pytorch', 'tensorflow']):
         domains.add('深度学习')
-    if any(keyword in repo_text for keyword in ['nlp', 'natural-language', 'bert', 'transformer']):
+    if any(keyword in search_text for keyword in ['nlp', 'natural-language', 'bert', 'transformer']):
         domains.add('NLP')
-    if any(keyword in repo_text for keyword in ['recommendation', 'recommendation-system', 'ctr-prediction']):
+    if any(keyword in search_text for keyword in ['recommendation', 'recommendation-system', 'ctr-prediction']):
         domains.add('推荐系统')
-    if any(keyword in repo_text for keyword in ['cv', 'computer-vision', 'opencv', 'image', 'yolo']):
+    if any(keyword in search_text for keyword in ['cv', 'computer-vision', 'opencv', 'image', 'yolo']):
         domains.add('CV')
-    if any(keyword in repo_text for keyword in ['data', 'analysis', 'visualization', 'pandas']):
+    if any(keyword in search_text for keyword in ['data', 'analysis', 'visualization', 'pandas']):
         domains.add('数据科学')
-    if any(keyword in repo_text for keyword in ['web', 'frontend', 'react', 'vue', 'javascript']):
+    if any(keyword in search_text for keyword in ['web', 'frontend', 'react', 'vue', 'javascript']):
         domains.add('前端开发')
+    if any(keyword in search_text for keyword in ['gpt', 'llm', 'chatbot', 'llama']):
+        domains.add('LLM')
 
     # 如果没有找到任何领域，设置默认值
     if not domains:
@@ -453,9 +473,9 @@ def main():
                 avatar_url = user_details.get('avatar_url') if user_details else contrib_info['user_info'].get('avatar_url')
                 local_avatar = download_avatar(avatar_url, username)
 
-                # 推断研究方向（基于参与的仓库名称和用户简介）
+                # 推断研究方向（基于仓库 topics、参与的仓库名称和用户简介）
                 user_bio = user_details.get('bio') if user_details else ''
-                domains = infer_domains_from_repos(contrib_info['repos'], user_bio)
+                domains = infer_domains_from_repos(contrib_info['repos'], user_bio, user_repos)
                 print(f"  ✓ 推断研究方向: {', '.join(domains)}")
 
                 processed_members.append({
