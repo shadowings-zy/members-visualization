@@ -13,9 +13,6 @@ hero:
       text: 🚀 开始探索
       link: /members
     - theme: alt
-      text: 📖 使用指南
-      link: /guide
-    - theme: alt
       text: 📊 数据统计
       link: /stats
 

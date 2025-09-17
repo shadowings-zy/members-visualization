@@ -40,7 +40,7 @@ CONFIG = {
         'nlp': 'NLP',
         'cv': 'CV',
         'data-mining': '数据挖掘',
-        'recommendation': '推荐系统',
+        'recommendation-system': '推荐系统',
         'reinforcement-learning': '强化学习',
         'computer-vision': 'CV',
         'natural-language-processing': 'NLP',
@@ -318,11 +318,15 @@ def infer_domains_from_repos(repo_names, user_bio=''):
             domains.add(value)
 
     # 根据常见项目名称模式推断
-    if any(keyword in repo_text for keyword in ['ml', 'machine-learning', 'pytorch', 'tensorflow', 'sklearn']):
+    if any(keyword in repo_text for keyword in ['ml', 'machine-learning', 'sklearn']):
         domains.add('机器学习')
+    if any(keyword in repo_text for keyword in ['dl', 'deep-learning', 'pytorch', 'tensorflow']):
+        domains.add('深度学习')
     if any(keyword in repo_text for keyword in ['nlp', 'natural-language', 'bert', 'transformer']):
         domains.add('NLP')
-    if any(keyword in repo_text for keyword in ['cv', 'computer-vision', 'opencv', 'image']):
+    if any(keyword in repo_text for keyword in ['recommendation', 'recommendation-system', 'ctr-prediction']):
+        domains.add('推荐系统')
+    if any(keyword in repo_text for keyword in ['cv', 'computer-vision', 'opencv', 'image', 'yolo']):
         domains.add('CV')
     if any(keyword in repo_text for keyword in ['data', 'analysis', 'visualization', 'pandas']):
         domains.add('数据科学')
