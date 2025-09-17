@@ -350,6 +350,12 @@ def infer_domains_from_repos(repo_names, user_bio='', user_repos=None):
         domains.add('前端开发')
     if any(keyword in search_text for keyword in ['gpt', 'llm', 'chatbot', 'llama']):
         domains.add('LLM')
+    if any(keyword in search_text for keyword in ['rag', 'retrieval-augmented-generation', 'retrieval-augmented']):
+        domains.add('RAG')
+    if any(keyword in search_text for keyword in ['database', 'sql', 'nosql', 'mongodb', 'mysql']):
+        domains.add('数据库开发')
+    if any(keyword in search_text for keyword in ['reinforcement-learning', 'rl', 'reinforcement']):
+        domains.add('强化学习')
 
     # 如果没有找到任何领域，设置默认值
     if not domains:
