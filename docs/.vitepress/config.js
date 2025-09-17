@@ -41,6 +41,7 @@ module.exports = {
       { text: '🏠 首页', link: '/' },
       { text: '👥 成员页', link: '/members' },
       { text: '📈 统计页', link: '/stats' },
+      { text: '🏆 榜单页', link: '/rankings' },
       {
         text: '🔗 相关链接',
         items: [
@@ -59,7 +60,8 @@ module.exports = {
           items: [
             { text: '🏠 首页', link: '/' },
             { text: '👥 成员页', link: '/members' },
-            { text: '📈 统计页', link: '/stats' }
+            { text: '📈 统计页', link: '/stats' },
+            { text: '🏆 榜单页', link: '/rankings' }
           ]
         }
       ]

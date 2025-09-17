@@ -1,0 +1,412 @@
+<template>
+  <div class="rankings-container">
+    <!-- 加载状态 -->
+    <div v-if="loading" class="loading-state">
+      <div class="loading-spinner"></div>
+      <p>正在加载榜单数据...</p>
+    </div>
+
+    <!-- 错误状态 -->
+    <div v-else-if="error" class="error-state">
+      <p>❌ 加载失败: {{ error }}</p>
+      <button @click="loadData" class="retry-btn">重试</button>
+    </div>
+
+    <!-- 榜单内容 -->
+    <div v-else class="rankings-content">
+      <!-- 筛选器 -->
+      <div class="filters-section">
+        <div class="filter-group">
+          <label>研究方向筛选：</label>
+          <select v-model="selectedDomain" @change="applyFilters">
+            <option value="">全部方向</option>
+            <option v-for="domain in allDomains" :key="domain" :value="domain">
+              {{ domain }}
+            </option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label>显示数量：</label>
+          <select v-model="topCount" @change="applyFilters">
+            <option :value="10">Top 10</option>
+            <option :value="20">Top 20</option>
+            <option :value="50">Top 50</option>
+          </select>
+        </div>
+
+        <button v-if="selectedDomain" @click="clearFilters" class="clear-filters-btn">
+          清除筛选
+        </button>
+      </div>
+
+      <!-- 榜单网格 -->
+      <div class="leaderboards-grid">
+        <LeaderboardCard
+          v-for="leaderboard in leaderboards"
+          :key="leaderboard.id"
+          :title="leaderboard.title"
+          :description="leaderboard.description"
+          :icon="leaderboard.icon"
+          :members="leaderboard.data"
+          :color-scheme="leaderboard.colorScheme"
+          :show-trend="leaderboard.showTrend"
+        />
+      </div>
+
+      <!-- 数据更新时间 -->
+      <div class="update-info">
+        <p>📅 数据最后更新时间：{{ lastUpdateTime }}</p>
+        <p>🔄 下次更新时间：{{ nextUpdateTime }}</p>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import LeaderboardCard from './LeaderboardCard.vue'
+
+// 响应式数据
+const loading = ref(true)
+const error = ref(null)
+const members = ref([])
+const selectedDomain = ref('')
+const topCount = ref(20)
+
+// 计算属性
+const allDomains = computed(() => {
+  const domains = new Set()
+  members.value.forEach(member => {
+    if (member.domain) {
+      member.domain.split(';').forEach(d => domains.add(d.trim()))
+    }
+  })
+  return Array.from(domains).sort()
+})
+
+const filteredMembers = computed(() => {
+  let filtered = members.value
+  
+  if (selectedDomain.value) {
+    filtered = filtered.filter(member => 
+      member.domain && member.domain.includes(selectedDomain.value)
+    )
+  }
+  
+  return filtered
+})
+
+// 榜单配置
+const leaderboards = computed(() => [
+  {
+    id: 'popularity',
+    title: '🔥 人气王榜',
+    description: '综合 Followers 和 Stars 的人气排行',
+    icon: '👑',
+    colorScheme: 'fire',
+    showTrend: true,
+    data: calculatePopularityRanking()
+  },
+  {
+    id: 'productive',
+    title: '💼 多产榜', 
+    description: '基于公开仓库数量的创作力排行',
+    icon: '🚀',
+    colorScheme: 'blue',
+    showTrend: true,
+    data: calculateProductiveRanking()
+  },
+  {
+    id: 'social',
+    title: '🤝 社交达人榜',
+    description: '基于 Following 数量的社交活跃度排行',
+    icon: '🌟',
+    colorScheme: 'green',
+    showTrend: true,
+    data: calculateSocialRanking()
+  },
+  {
+    id: 'rising',
+    title: '⭐ 新星榜',
+    description: '综合活跃度指标的潜力新星排行',
+    icon: '🌠',
+    colorScheme: 'purple',
+    showTrend: true,
+    data: calculateRisingStarRanking()
+  },
+  {
+    id: 'comprehensive',
+    title: '🌟 综合实力榜',
+    description: '多维度综合评分的全能排行',
+    icon: '🏆',
+    colorScheme: 'gold',
+    showTrend: true,
+    data: calculateComprehensiveRanking()
+  }
+])
+
+// 时间信息
+const lastUpdateTime = computed(() => {
+  return new Date().toLocaleString('zh-CN')
+})
+
+const nextUpdateTime = computed(() => {
+  const tomorrow = new Date()
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  tomorrow.setHours(6, 0, 0, 0) // 每天早上6点更新
+  return tomorrow.toLocaleString('zh-CN')
+})
+
+// 排名计算函数
+function calculatePopularityRanking() {
+  return filteredMembers.value
+    .map(member => ({
+      ...member,
+      score: (member.followers || 0) * 0.6 + (member.total_stars || 0) * 0.4,
+      scoreDisplay: `${member.followers || 0} followers + ${member.total_stars || 0} stars`
+    }))
+    .filter(member => member.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topCount.value)
+    .map((member, index) => ({ ...member, rank: index + 1 }))
+}
+
+function calculateProductiveRanking() {
+  return filteredMembers.value
+    .map(member => ({
+      ...member,
+      score: member.public_repos || 0,
+      scoreDisplay: `${member.public_repos || 0} 个仓库`
+    }))
+    .filter(member => member.score >= 5)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topCount.value)
+    .map((member, index) => ({ ...member, rank: index + 1 }))
+}
+
+function calculateSocialRanking() {
+  return filteredMembers.value
+    .map(member => ({
+      ...member,
+      score: member.following || 0,
+      scoreDisplay: `关注 ${member.following || 0} 人`
+    }))
+    .filter(member => member.score >= 10)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topCount.value)
+    .map((member, index) => ({ ...member, rank: index + 1 }))
+}
+
+function calculateRisingStarRanking() {
+  return filteredMembers.value
+    .map(member => {
+      const repos = Math.max(member.public_repos || 1, 1)
+      const activity = (member.followers || 0) + (member.total_stars || 0)
+      const score = activity / repos * (repos < 20 ? 1.5 : 1) // 新人加成
+      
+      return {
+        ...member,
+        score,
+        scoreDisplay: `活跃度 ${Math.round(score)}`
+      }
+    })
+    .filter(member => member.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topCount.value)
+    .map((member, index) => ({ ...member, rank: index + 1 }))
+}
+
+function calculateComprehensiveRanking() {
+  return filteredMembers.value
+    .map(member => {
+      const stars = (member.total_stars || 0) * 0.3
+      const followers = (member.followers || 0) * 0.25
+      const repos = (member.public_repos || 0) * 0.2
+      const following = (member.following || 0) * 0.15
+      const participation = (member.repositories ? member.repositories.split(';').length : 0) * 0.1
+      
+      const score = stars + followers + repos + following + participation
+      
+      return {
+        ...member,
+        score,
+        scoreDisplay: `综合分 ${Math.round(score)}`
+      }
+    })
+    .filter(member => member.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topCount.value)
+    .map((member, index) => ({ ...member, rank: index + 1 }))
+}
+
+// 方法
+const loadData = async () => {
+  try {
+    loading.value = true
+    error.value = null
+    
+    const basePath = import.meta.env.BASE_URL || '/'
+    const csvPath = `${basePath}data/members.csv`.replace(/\/+/g, '/')
+    
+    const response = await fetch(csvPath)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    const csvText = await response.text()
+    const lines = csvText.trim().split('\n')
+    const headers = lines[0].split(',')
+    
+    members.value = lines.slice(1).map(line => {
+      const values = line.split(',')
+      const member = {}
+      headers.forEach((header, index) => {
+        const key = header.trim()
+        let value = values[index] ? values[index].trim().replace(/^"|"$/g, '') : ''
+        
+        // 转换数字字段
+        if (['public_repos', 'total_stars', 'followers', 'following'].includes(key)) {
+          value = parseInt(value) || 0
+        }
+        
+        member[key] = value
+      })
+      return member
+    })
+    
+  } catch (err) {
+    error.value = err.message
+    console.error('加载数据失败:', err)
+  } finally {
+    loading.value = false
+  }
+}
+
+const applyFilters = () => {
+  // 筛选逻辑已通过计算属性实现
+}
+
+const clearFilters = () => {
+  selectedDomain.value = ''
+}
+
+// 生命周期
+onMounted(() => {
+  loadData()
+})
+</script>
+
+<style scoped>
+.rankings-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.loading-state, .error-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.filters-section {
+  background: var(--vp-c-bg-soft);
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: center;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-group label {
+  font-weight: 500;
+  color: var(--vp-c-text-1);
+}
+
+.filter-group select {
+  padding: 8px 12px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 6px;
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
+  font-size: 14px;
+}
+
+.clear-filters-btn, .retry-btn {
+  padding: 8px 16px;
+  background: var(--vp-c-brand-1);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.clear-filters-btn:hover, .retry-btn:hover {
+  background: var(--vp-c-brand-2);
+}
+
+.leaderboards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 30px;
+  margin-bottom: 40px;
+}
+
+.update-info {
+  text-align: center;
+  padding: 20px;
+  background: var(--vp-c-bg-soft);
+  border-radius: 8px;
+  color: var(--vp-c-text-2);
+  font-size: 14px;
+}
+
+.update-info p {
+  margin: 5px 0;
+}
+
+@media (max-width: 768px) {
+  .rankings-container {
+    padding: 15px;
+  }
+  
+  .leaderboards-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .filters-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filter-group {
+    justify-content: space-between;
+  }
+}
+</style>
