@@ -1,9 +1,9 @@
 name: Daily Data Update
 
 on:
-  # 每日 00:00 UTC 自动运行
+  # 每日 22:00 UTC 自动运行（北京时间凌晨 6:00）
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 22 * * *'
   
   # 允许手动触发
   workflow_dispatch:
@@ -45,7 +45,7 @@ jobs:
         run: npm ci
 
       - name: Fetch latest member data
-        run: python scripts/fetch-members.py --with-commits
+        run: python scripts/fetch-members.py
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ORG: datawhalechina
@@ -67,7 +67,7 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add data/members.csv docs/public/avatars/
+          git add docs/public/data/members.csv docs/public/data/commits_weekly.json docs/public/avatars/
           git commit -m "🤖 Auto-update member data and avatars - $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
           git push
 
