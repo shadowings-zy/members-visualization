@@ -1,5 +1,5 @@
 {
-  "update_time": "2025-09-18T01:20:34.939359",
+  "update_time": "2025-09-18T01:57:47.126868",
   "days_range": 7,
   "total_commits": 139,
   "total_repos": 12,
@@ -65,8 +65,8 @@
     "FutureUnreal": {
       "total_commits": 33,
       "repos": [
-        "base-nlp",
-        "all-in-rag"
+        "all-in-rag",
+        "base-nlp"
       ],
       "repo_count": 2,
       "daily_commits": {
@@ -518,8 +518,8 @@
     "jjyaoao": {
       "total_commits": 32,
       "repos": [
-        "handy-multi-agent",
-        "hello-agents"
+        "hello-agents",
+        "handy-multi-agent"
       ],
       "repo_count": 2,
       "daily_commits": {
@@ -926,7 +926,7 @@
       "user_repos": 198,
       "total": 725
     },
-    "execution_time": "163.8s",
+    "execution_time": "237.2s",
     "optimization_enabled": true
   }
 }
