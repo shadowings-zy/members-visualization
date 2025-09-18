@@ -45,7 +45,7 @@ jobs:
         run: npm ci
 
       - name: Fetch latest member data
-        run: python scripts/fetch-members.py
+        run: python scripts/fetch-members.py --with-commits
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ORG: datawhalechina
