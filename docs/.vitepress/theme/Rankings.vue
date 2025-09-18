@@ -40,6 +40,11 @@
         </button>
       </div>
 
+      <!-- 一周卷王榜（特殊位置） -->
+      <div class="weekly-commits-section">
+        <WeeklyCommitsCard />
+      </div>
+
       <!-- 榜单网格 -->
       <div class="leaderboards-grid">
         <LeaderboardCard
@@ -66,6 +71,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import LeaderboardCard from './LeaderboardCard.vue'
+import WeeklyCommitsCard from './WeeklyCommitsCard.vue'
 
 // 响应式数据
 const loading = ref(true)
@@ -368,6 +374,10 @@ onMounted(() => {
 
 .clear-filters-btn:hover, .retry-btn:hover {
   background: var(--vp-c-brand-2);
+}
+
+.weekly-commits-section {
+  margin-bottom: 40px;
 }
 
 .leaderboards-grid {

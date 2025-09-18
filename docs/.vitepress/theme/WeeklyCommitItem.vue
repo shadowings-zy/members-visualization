@@ -1,0 +1,632 @@
+<template>
+  <div 
+    class="weekly-commit-item" 
+    :class="`rank-${rank}`"
+    :style="{ animationDelay: `${animationDelay}ms` }"
+  >
+    <!-- 排名徽章 -->
+    <div class="rank-badge">
+      <span v-if="rank <= 3" class="medal">{{ getMedal(rank) }}</span>
+      <span v-else class="rank-number">{{ rank }}</span>
+    </div>
+
+    <!-- 成员头像 -->
+    <div class="avatar-section">
+      <img 
+        :src="getAvatarUrl(member.github_username)" 
+        :alt="member.display_name"
+        class="avatar"
+        @error="handleImageError"
+      />
+      <div class="fire-indicator">🔥</div>
+    </div>
+
+    <!-- 成员信息 -->
+    <div class="member-info">
+      <div class="name-section">
+        <h4 class="member-name">{{ member.display_name }}</h4>
+        <div class="member-meta">
+          <span class="github-username" v-if="member.github_username">
+            @{{ member.github_username }}
+          </span>
+        </div>
+      </div>
+      
+      <div class="commit-stats">
+        <div class="stat-item">
+          <span class="stat-icon">📊</span>
+          <span class="stat-value">{{ member.total_commits }} commits</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon">📁</span>
+          <span class="stat-value">{{ member.repo_count }} 仓库</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon">📅</span>
+          <span class="stat-value">{{ member.active_days }} 活跃天</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 每日commit分布图 -->
+    <div class="daily-chart-section">
+      <div class="chart-title">每日分布</div>
+      <div class="daily-chart">
+        <div 
+          v-for="(count, date) in sortedDailyCommits" 
+          :key="date"
+          class="day-bar"
+          :style="{ height: `${getBarHeight(count)}%` }"
+          :title="`${date}: ${count} commits`"
+        >
+          <div class="bar-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 分数和趋势 -->
+    <div class="score-section">
+      <div class="score-value">{{ member.score }}</div>
+      <div class="score-label">卷王分</div>
+      
+      <div class="trend-indicator" :class="getTrendClass()">
+        {{ getTrendIcon() }}
+      </div>
+    </div>
+
+    <!-- 详细信息悬浮框 -->
+    <div class="details-popup" v-if="showDetails">
+      <div class="popup-header">
+        <h5>{{ member.display_name }} 的本周战绩</h5>
+        <button @click="showDetails = false" class="close-btn">×</button>
+      </div>
+      
+      <div class="popup-content">
+        <div class="detail-section">
+          <h6>📊 统计概览</h6>
+          <ul>
+            <li>总commit数：{{ member.total_commits }}</li>
+            <li>参与仓库：{{ member.repo_count }} 个</li>
+            <li>活跃天数：{{ member.active_days }} 天</li>
+            <li>平均每日：{{ member.avg_commits_per_day?.toFixed(1) }} commits</li>
+          </ul>
+        </div>
+        
+        <div class="detail-section" v-if="member.repos?.length">
+          <h6>📁 主要仓库</h6>
+          <div class="repo-tags">
+            <span 
+              v-for="repo in member.repos.slice(0, 5)" 
+              :key="repo"
+              class="repo-tag"
+            >
+              {{ repo }}
+            </span>
+          </div>
+        </div>
+        
+        <div class="detail-section" v-if="member.commit_messages?.length">
+          <h6>💬 最近提交</h6>
+          <div class="commit-messages">
+            <div 
+              v-for="commit in member.commit_messages.slice(0, 3)" 
+              :key="commit.url"
+              class="commit-message"
+            >
+              <div class="commit-text">{{ commit.message }}</div>
+              <div class="commit-meta">
+                {{ commit.repo }} • {{ commit.date }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GitHub 链接 -->
+    <div class="actions-section">
+      <button @click="showDetails = !showDetails" class="details-btn" title="查看详情">
+        📋
+      </button>
+      <a 
+        v-if="member.github_username"
+        :href="`https://github.com/${member.github_username}`" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        class="github-link"
+        title="访问GitHub"
+      >
+        <svg class="github-icon" viewBox="0 0 24 24" width="16" height="16">
+          <path fill="currentColor" d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed } from 'vue'
+
+// Props
+const props = defineProps({
+  member: {
+    type: Object,
+    required: true
+  },
+  rank: {
+    type: Number,
+    required: true
+  },
+  animationDelay: {
+    type: Number,
+    default: 0
+  }
+})
+
+// 响应式数据
+const showDetails = ref(false)
+
+// 计算属性
+const sortedDailyCommits = computed(() => {
+  if (!props.member.daily_commits) return []
+  
+  const entries = Object.entries(props.member.daily_commits)
+  return entries.sort(([a], [b]) => a.localeCompare(b))
+})
+
+// 方法
+const getMedal = (rank) => {
+  const medals = { 1: '🥇', 2: '🥈', 3: '🥉' }
+  return medals[rank] || rank
+}
+
+const getAvatarUrl = (username) => {
+  if (!username) {
+    const basePath = import.meta.env.BASE_URL || '/'
+    return `${basePath}default-avatar.svg`.replace(/\/+/g, '/')
+  }
+  
+  return `https://github.com/${username}.png?size=96`
+}
+
+const handleImageError = (event) => {
+  const basePath = import.meta.env.BASE_URL || '/'
+  event.target.src = `${basePath}default-avatar.svg`.replace(/\/+/g, '/')
+}
+
+const getBarHeight = (count) => {
+  if (!props.member.daily_commits) return 0
+  
+  const maxCount = Math.max(...Object.values(props.member.daily_commits))
+  return maxCount > 0 ? (count / maxCount) * 100 : 0
+}
+
+const getTrendClass = () => {
+  // 基于活跃天数和平均commit数判断趋势
+  const avgCommits = props.member.avg_commits_per_day || 0
+  const activeDays = props.member.active_days || 0
+  
+  if (avgCommits >= 3 && activeDays >= 5) return 'up'
+  if (avgCommits >= 2 && activeDays >= 3) return 'stable'
+  return 'down'
+}
+
+const getTrendIcon = () => {
+  const trendClass = getTrendClass()
+  const icons = { up: '📈', stable: '➡️', down: '📉' }
+  return icons[trendClass] || '➡️'
+}
+</script>
+
+<style scoped>
+.weekly-commit-item {
+  display: flex;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--vp-c-divider-light);
+  transition: all 0.3s ease;
+  animation: slideInLeft 0.6s ease-out;
+  position: relative;
+}
+
+.weekly-commit-item:hover {
+  background: linear-gradient(90deg, rgba(255, 107, 107, 0.05) 0%, transparent 100%);
+  border-radius: 8px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.weekly-commit-item:last-child {
+  border-bottom: none;
+}
+
+/* 排名样式 */
+.rank-1 {
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.1) 0%, transparent 100%);
+}
+
+.rank-2 {
+  background: linear-gradient(90deg, rgba(192, 192, 192, 0.1) 0%, transparent 100%);
+}
+
+.rank-3 {
+  background: linear-gradient(90deg, rgba(205, 127, 50, 0.1) 0%, transparent 100%);
+}
+
+.rank-badge {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.medal {
+  font-size: 24px;
+}
+
+.rank-number {
+  font-size: 16px;
+  font-weight: bold;
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ff6b6b;
+}
+
+.avatar-section {
+  position: relative;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #ff6b6b;
+  transition: transform 0.3s ease;
+}
+
+.weekly-commit-item:hover .avatar {
+  transform: scale(1.1);
+}
+
+.fire-indicator {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--vp-c-bg);
+  border: 1px solid #ff6b6b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  animation: fireFlicker 2s ease-in-out infinite alternate;
+}
+
+@keyframes fireFlicker {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.2); }
+}
+
+.member-info {
+  flex: 1;
+  min-width: 0;
+  margin-right: 12px;
+}
+
+.member-name {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--vp-c-text-1);
+}
+
+.member-meta {
+  margin-bottom: 8px;
+}
+
+.github-username {
+  font-size: 12px;
+  color: var(--vp-c-text-2);
+}
+
+.commit-stats {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--vp-c-text-2);
+}
+
+.stat-icon {
+  font-size: 10px;
+}
+
+.daily-chart-section {
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.chart-title {
+  font-size: 10px;
+  color: var(--vp-c-text-2);
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.daily-chart {
+  display: flex;
+  gap: 2px;
+  height: 30px;
+  align-items: flex-end;
+}
+
+.day-bar {
+  width: 8px;
+  height: 100%;
+  background: rgba(255, 107, 107, 0.1);
+  border-radius: 2px;
+  position: relative;
+  cursor: pointer;
+}
+
+.bar-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, #ff6b6b, #ff8e8e);
+  border-radius: 2px;
+  height: 100%;
+}
+
+.score-section {
+  text-align: center;
+  margin-right: 12px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.score-value {
+  font-size: 20px;
+  font-weight: bold;
+  color: #ff6b6b;
+  line-height: 1;
+}
+
+.score-label {
+  font-size: 10px;
+  color: var(--vp-c-text-2);
+  margin-top: 2px;
+}
+
+.trend-indicator {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  font-size: 12px;
+}
+
+.actions-section {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.details-btn, .github-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-2);
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+.details-btn:hover {
+  background: #ff6b6b;
+  color: white;
+}
+
+.github-link:hover {
+  background: var(--vp-c-brand-1);
+  color: white;
+  transform: scale(1.1);
+}
+
+.github-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* 详细信息弹窗 */
+.details-popup {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--vp-c-bg);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  padding: 16px;
+  width: 300px;
+  max-width: 90vw;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  animation: popupSlideIn 0.3s ease-out;
+}
+
+@keyframes popupSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+.popup-header h5 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--vp-c-text-1);
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--vp-c-text-2);
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.detail-section {
+  margin-bottom: 12px;
+}
+
+.detail-section h6 {
+  margin: 0 0 6px 0;
+  font-size: 12px;
+  color: var(--vp-c-text-1);
+  font-weight: 600;
+}
+
+.detail-section ul {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 12px;
+  color: var(--vp-c-text-2);
+}
+
+.repo-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.repo-tag {
+  background: rgba(255, 107, 107, 0.1);
+  color: #ff6b6b;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.commit-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.commit-message {
+  padding: 6px;
+  background: var(--vp-c-bg-soft);
+  border-radius: 4px;
+}
+
+.commit-text {
+  font-size: 11px;
+  color: var(--vp-c-text-1);
+  margin-bottom: 2px;
+  line-height: 1.3;
+}
+
+.commit-meta {
+  font-size: 10px;
+  color: var(--vp-c-text-2);
+}
+
+/* 动画 */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .weekly-commit-item {
+    flex-wrap: wrap;
+    padding: 16px 0;
+  }
+  
+  .member-info {
+    order: 1;
+    flex: 1 1 100%;
+    margin: 8px 0;
+  }
+  
+  .daily-chart-section {
+    order: 2;
+    margin: 8px 0;
+  }
+  
+  .score-section {
+    order: 3;
+    margin: 8px 0;
+  }
+  
+  .actions-section {
+    order: 4;
+  }
+  
+  .commit-stats {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .details-popup {
+    width: 280px;
+    left: 0;
+    transform: none;
+    margin-left: 10px;
+  }
+}
+</style>

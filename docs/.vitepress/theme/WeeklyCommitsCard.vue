@@ -1,0 +1,489 @@
+<template>
+  <div class="weekly-commits-card" :class="`theme-fire`">
+    <!-- 卡片头部 -->
+    <div class="card-header">
+      <div class="title-section">
+        <span class="icon animated-fire">🔥</span>
+        <div>
+          <h3 class="title">一周卷王榜</h3>
+          <p class="description">基于最近7天commit活动的超级卷王排行</p>
+        </div>
+      </div>
+      <div class="stats-badge">
+        <span class="count">{{ validMembers.length }}</span>
+        <span class="label">人上榜</span>
+      </div>
+    </div>
+
+    <!-- 时间范围选择器 -->
+    <div class="time-range-selector">
+      <div class="range-buttons">
+        <button 
+          v-for="range in timeRanges" 
+          :key="range.days"
+          @click="selectedRange = range.days"
+          :class="{ active: selectedRange === range.days }"
+          class="range-btn"
+        >
+          {{ range.label }}
+        </button>
+      </div>
+      <div class="update-info">
+        <span class="update-time">📅 {{ lastUpdateTime }}</span>
+      </div>
+    </div>
+
+    <!-- 榜单内容 -->
+    <div class="leaderboard-content">
+      <div v-if="loading" class="loading-state">
+        <div class="loading-spinner"></div>
+        <p>正在加载commit数据...</p>
+      </div>
+      
+      <div v-else-if="error" class="error-state">
+        <p>❌ {{ error }}</p>
+        <button @click="loadCommitsData" class="retry-btn">重试</button>
+      </div>
+      
+      <div v-else-if="validMembers.length === 0" class="empty-state">
+        <div class="empty-icon">😴</div>
+        <p>本周暂无commit活动</p>
+        <p class="empty-hint">快去写代码吧！</p>
+      </div>
+      
+      <div v-else class="commits-list">
+        <WeeklyCommitItem
+          v-for="(member, index) in displayMembers"
+          :key="member.user_key"
+          :member="member"
+          :rank="index + 1"
+          :animation-delay="index * 100"
+        />
+      </div>
+    </div>
+
+    <!-- 卡片底部 -->
+    <div class="card-footer" v-if="validMembers.length > 0">
+      <div class="ranking-info">
+        <span>🏆 本周卷王：{{ validMembers[0]?.display_name }}</span>
+        <span>📊 总commit数：{{ totalCommits }}</span>
+      </div>
+      
+      <button 
+        v-if="validMembers.length > 5"
+        @click="toggleExpanded" 
+        class="expand-btn"
+      >
+        {{ isExpanded ? '收起' : '查看更多' }}
+        <span class="arrow" :class="{ expanded: isExpanded }">▼</span>
+      </button>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import WeeklyCommitItem from './WeeklyCommitItem.vue'
+
+// 响应式数据
+const loading = ref(true)
+const error = ref(null)
+const commitsData = ref(null)
+const selectedRange = ref(7)
+const isExpanded = ref(false)
+
+// 时间范围选项
+const timeRanges = [
+  { days: 7, label: '7天' },
+  { days: 14, label: '14天' },
+  { days: 30, label: '30天' }
+]
+
+// 计算属性
+const validMembers = computed(() => {
+  if (!commitsData.value?.user_commits) return []
+  
+  const members = []
+  
+  for (const [userKey, stats] of Object.entries(commitsData.value.user_commits)) {
+    // 过滤条件：至少3个commit
+    if (stats.total_commits >= 3) {
+      members.push({
+        user_key: userKey,
+        display_name: extractDisplayName(userKey),
+        github_username: extractGithubUsername(userKey),
+        ...stats,
+        // 计算卷王分数
+        score: calculateRollKingScore(stats)
+      })
+    }
+  }
+  
+  // 按分数排序
+  return members.sort((a, b) => b.score - a.score)
+})
+
+const displayMembers = computed(() => {
+  return isExpanded.value ? validMembers.value : validMembers.value.slice(0, 5)
+})
+
+const totalCommits = computed(() => {
+  return validMembers.value.reduce((sum, member) => sum + member.total_commits, 0)
+})
+
+const lastUpdateTime = computed(() => {
+  if (!commitsData.value?.update_time) return '未知'
+  
+  const updateTime = new Date(commitsData.value.update_time)
+  return updateTime.toLocaleString('zh-CN')
+})
+
+// 方法
+const extractDisplayName = (userKey) => {
+  // 如果是GitHub用户名，直接返回
+  if (!userKey.includes('@')) {
+    return userKey
+  }
+  
+  // 如果是邮箱，提取用户名部分
+  const emailMatch = userKey.match(/^([^@]+)@/)
+  return emailMatch ? emailMatch[1] : userKey
+}
+
+const extractGithubUsername = (userKey) => {
+  // 如果不包含@，说明就是GitHub用户名
+  return userKey.includes('@') ? null : userKey
+}
+
+const calculateRollKingScore = (stats) => {
+  let score = 0
+  
+  // 基础分：每个commit = 1分
+  score += stats.total_commits
+  
+  // 连续性奖励：连续多天有commit
+  const activeDays = stats.active_days || 0
+  if (activeDays >= 7) {
+    score += 10 // 连续7天奖励
+  } else if (activeDays >= 5) {
+    score += 5  // 连续5天奖励
+  } else if (activeDays >= 3) {
+    score += 2  // 连续3天奖励
+  }
+  
+  // 多仓库奖励：参与多个仓库
+  const repoCount = stats.repo_count || 0
+  if (repoCount >= 5) {
+    score += 5
+  } else if (repoCount >= 3) {
+    score += 3
+  } else if (repoCount >= 2) {
+    score += 1
+  }
+  
+  // 平均每日commit奖励
+  const avgCommitsPerDay = stats.avg_commits_per_day || 0
+  if (avgCommitsPerDay >= 5) {
+    score += 8
+  } else if (avgCommitsPerDay >= 3) {
+    score += 5
+  } else if (avgCommitsPerDay >= 2) {
+    score += 2
+  }
+  
+  return Math.round(score)
+}
+
+const loadCommitsData = async () => {
+  try {
+    loading.value = true
+    error.value = null
+    
+    const basePath = import.meta.env.BASE_URL || '/'
+    const commitsPath = `${basePath}data/commits_weekly.json`.replace(/\/+/g, '/')
+    
+    const response = await fetch(commitsPath)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    commitsData.value = await response.json()
+    
+  } catch (err) {
+    error.value = err.message
+    console.error('加载commit数据失败:', err)
+  } finally {
+    loading.value = false
+  }
+}
+
+const toggleExpanded = () => {
+  isExpanded.value = !isExpanded.value
+}
+
+// 生命周期
+onMounted(() => {
+  loadCommitsData()
+})
+</script>
+
+<style scoped>
+.weekly-commits-card {
+  background: var(--vp-c-bg);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  position: relative;
+  border-top: 4px solid #ff6b6b;
+}
+
+.weekly-commits-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.2);
+}
+
+.card-header {
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, var(--vp-c-bg-soft) 100%);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.title-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.animated-fire {
+  animation: fireFlicker 2s ease-in-out infinite alternate;
+}
+
+@keyframes fireFlicker {
+  0% { transform: scale(1) rotate(-1deg); }
+  50% { transform: scale(1.1) rotate(1deg); }
+  100% { transform: scale(1) rotate(-1deg); }
+}
+
+.title {
+  margin: 0 0 4px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--vp-c-text-1);
+}
+
+.description {
+  margin: 0;
+  font-size: 14px;
+  color: var(--vp-c-text-2);
+  line-height: 1.4;
+}
+
+.stats-badge {
+  background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 20px;
+  text-align: center;
+  min-width: 60px;
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+}
+
+.stats-badge .count {
+  display: block;
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.stats-badge .label {
+  display: block;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.time-range-selector {
+  padding: 15px 20px;
+  background: var(--vp-c-bg-soft);
+  border-bottom: 1px solid var(--vp-c-divider);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.range-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.range-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.3s ease;
+}
+
+.range-btn:hover {
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}
+
+.range-btn.active {
+  background: #ff6b6b;
+  color: white;
+  border-color: #ff6b6b;
+}
+
+.update-info {
+  font-size: 12px;
+  color: var(--vp-c-text-2);
+}
+
+.leaderboard-content {
+  padding: 0 20px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.loading-state, .error-state, .empty-state {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #ff6b6b;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.empty-hint {
+  font-size: 14px;
+  color: var(--vp-c-text-2);
+  margin-top: 8px;
+}
+
+.retry-btn {
+  padding: 8px 16px;
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.retry-btn:hover {
+  background: #ff5252;
+}
+
+.commits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.card-footer {
+  padding: 15px 20px;
+  background: var(--vp-c-bg-soft);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--vp-c-divider);
+}
+
+.ranking-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--vp-c-text-2);
+}
+
+.expand-btn {
+  background: none;
+  border: 1px solid var(--vp-c-divider);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--vp-c-text-1);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.3s ease;
+}
+
+.expand-btn:hover {
+  background: var(--vp-c-bg-soft);
+  border-color: #ff6b6b;
+}
+
+.arrow {
+  transition: transform 0.3s ease;
+  font-size: 10px;
+}
+
+.arrow.expanded {
+  transform: rotate(180deg);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .card-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+  
+  .title-section {
+    align-items: center;
+  }
+  
+  .stats-badge {
+    align-self: flex-end;
+    min-width: auto;
+  }
+  
+  .time-range-selector {
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+  }
+  
+  .card-footer {
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+  }
+  
+  .ranking-info {
+    text-align: center;
+  }
+}
+</style>
