@@ -75,10 +75,10 @@
     </div>
 
     <!-- 详细信息悬浮框 -->
-    <div class="details-popup" v-if="showDetails">
+    <div class="details-popup" v-if="props.showDetails">
       <div class="popup-header">
         <h5>{{ member.display_name }} 的本周战绩</h5>
-        <button @click="showDetails = false" class="close-btn">×</button>
+        <button @click="emit('toggle-details', props.member.user_key)" class="close-btn">×</button>
       </div>
       
       <div class="popup-content">
@@ -125,7 +125,7 @@
 
     <!-- GitHub 链接 -->
     <div class="actions-section">
-      <button @click="showDetails = !showDetails" class="details-btn" title="查看详情">
+      <button @click="emit('toggle-details', props.member.user_key)" class="details-btn" title="查看详情">
         📋
       </button>
       <a 
@@ -160,11 +160,15 @@ const props = defineProps({
   animationDelay: {
     type: Number,
     default: 0
+  },
+  showDetails: {
+    type: Boolean,
+    default: false
   }
 })
 
-// 响应式数据
-const showDetails = ref(false)
+// Emits
+const emit = defineEmits(['toggle-details'])
 
 // 计算属性
 const sortedDailyCommits = computed(() => {

@@ -42,7 +42,11 @@
 
       <!-- 一周卷王榜（特殊位置） -->
       <div class="weekly-commits-section">
-        <WeeklyCommitsCard />
+        <WeeklyCommitsCard
+          :members-data="members"
+          :selected-domain="selectedDomain"
+          :top-count="topCount"
+        />
       </div>
 
       <!-- 榜单网格 -->
@@ -59,11 +63,13 @@
         />
       </div>
 
-      <!-- 数据更新时间 -->
+      <!-- 数据更新时间和说明 -->
       <div class="update-info">
         <p>📅 数据最后更新时间：{{ lastUpdateTime }}</p>
         <p>🔄 下次更新时间：{{ nextUpdateTime }}</p>
       </div>
+
+
     </div>
   </div>
 </template>
@@ -77,6 +83,7 @@ import WeeklyCommitsCard from './WeeklyCommitsCard.vue'
 const loading = ref(true)
 const error = ref(null)
 const members = ref([])
+const commitsData = ref(null)
 const selectedDomain = ref('')
 const topCount = ref(20)
 
@@ -154,6 +161,9 @@ const leaderboards = computed(() => [
 
 // 时间信息
 const lastUpdateTime = computed(() => {
+  if (commitsData.value?.update_time) {
+    return new Date(commitsData.value.update_time).toLocaleString('zh-CN')
+  }
   return new Date().toLocaleString('zh-CN')
 })
 
@@ -254,32 +264,43 @@ const loadData = async () => {
     
     const basePath = import.meta.env.BASE_URL || '/'
     const csvPath = `${basePath}data/members.csv`.replace(/\/+/g, '/')
-    
-    const response = await fetch(csvPath)
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+    const commitsPath = `${basePath}data/commits_weekly.json`.replace(/\/+/g, '/')
+
+    // 并行加载成员数据和commits数据
+    const [membersResponse, commitsResponse] = await Promise.all([
+      fetch(csvPath),
+      fetch(commitsPath)
+    ])
+
+    if (!membersResponse.ok) {
+      throw new Error(`HTTP error! status: ${membersResponse.status}`)
     }
-    
-    const csvText = await response.text()
+
+    const csvText = await membersResponse.text()
     const lines = csvText.trim().split('\n')
     const headers = lines[0].split(',')
-    
+
     members.value = lines.slice(1).map(line => {
       const values = line.split(',')
       const member = {}
       headers.forEach((header, index) => {
         const key = header.trim()
         let value = values[index] ? values[index].trim().replace(/^"|"$/g, '') : ''
-        
+
         // 转换数字字段
         if (['public_repos', 'total_stars', 'followers', 'following'].includes(key)) {
           value = parseInt(value) || 0
         }
-        
+
         member[key] = value
       })
       return member
     })
+
+    // 加载commits数据（用于获取更新时间）
+    if (commitsResponse.ok) {
+      commitsData.value = await commitsResponse.json()
+    }
     
   } catch (err) {
     error.value = err.message
@@ -399,6 +420,8 @@ onMounted(() => {
 .update-info p {
   margin: 5px 0;
 }
+
+
 
 @media (max-width: 768px) {
   .rankings-container {

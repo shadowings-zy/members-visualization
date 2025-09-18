@@ -288,11 +288,11 @@ ${stats.value.domainStats.map(item =>
 
 <style scoped>
 .data-export {
-  background: white;
+  background: var(--vp-c-bg);
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e1e5e9;
+  box-shadow: 0 2px 10px var(--vp-shadow-1);
+  border: 1px solid var(--vp-c-divider);
 }
 
 .export-header {
@@ -302,13 +302,13 @@ ${stats.value.domainStats.map(item =>
 
 .export-header h3 {
   margin: 0 0 8px 0;
-  color: #333;
+  color: var(--vp-c-text-1);
   font-size: 1.5rem;
 }
 
 .export-header p {
   margin: 0;
-  color: #666;
+  color: var(--vp-c-text-2);
   font-size: 1rem;
 }
 
@@ -325,21 +325,21 @@ ${stats.value.domainStats.map(item =>
 .stat-item {
   text-align: center;
   padding: 16px;
-  background: #f8f9fa;
+  background: var(--vp-c-bg-soft);
   border-radius: 8px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--vp-c-divider);
 }
 
 .stat-value {
   font-size: 1.8rem;
   font-weight: bold;
-  color: #0366d6;
+  color: var(--vp-c-brand-1);
   margin-bottom: 4px;
 }
 
 .stat-label {
   font-size: 0.9rem;
-  color: #666;
+  color: var(--vp-c-text-2);
 }
 
 .domain-details {
@@ -348,7 +348,7 @@ ${stats.value.domainStats.map(item =>
 
 .domain-details h4 {
   margin: 0 0 16px 0;
-  color: #333;
+  color: var(--vp-c-text-1);
   font-size: 1.2rem;
 }
 
@@ -362,14 +362,14 @@ ${stats.value.domainStats.map(item =>
 
 .domain-item {
   padding: 12px;
-  background: #f8f9fa;
+  background: var(--vp-c-bg-soft);
   border-radius: 8px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--vp-c-divider);
 }
 
 .domain-name {
   font-weight: 600;
-  color: #333;
+  color: var(--vp-c-text-1);
   margin-bottom: 8px;
 }
 
@@ -381,31 +381,31 @@ ${stats.value.domainStats.map(item =>
 }
 
 .count {
-  color: #0366d6;
+  color: var(--vp-c-brand-1);
   font-weight: 500;
 }
 
 .percentage {
-  color: #666;
+  color: var(--vp-c-text-2);
   font-size: 0.9rem;
 }
 
 .progress-bar {
   height: 6px;
-  background: #e9ecef;
+  background: var(--vp-c-divider);
   border-radius: 3px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #0366d6, #4CAF50);
+  background: linear-gradient(90deg, var(--vp-c-brand-1), var(--vp-c-brand-2));
   transition: width 0.3s ease;
 }
 
 .export-actions h4 {
   margin: 0 0 16px 0;
-  color: #333;
+  color: var(--vp-c-text-1);
   font-size: 1.2rem;
 }
 
@@ -467,10 +467,10 @@ ${stats.value.domainStats.map(item =>
 .exporting-indicator {
   margin-top: 16px;
   padding: 12px;
-  background: #fff3cd;
-  border: 1px solid #ffeaa7;
+  background: var(--vp-c-warning-soft);
+  border: 1px solid var(--vp-c-warning);
   border-radius: 8px;
-  color: #856404;
+  color: var(--vp-c-warning-dark);
   text-align: center;
   font-weight: 500;
 }

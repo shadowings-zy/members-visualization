@@ -121,23 +121,23 @@ const toggleExpanded = () => {
 
 /* 主题色彩 */
 .theme-fire {
-  border-top: 4px solid #ff6b6b;
+  border-top: 2px solid #ff6b6b;
 }
 
 .theme-blue {
-  border-top: 4px solid #4ecdc4;
+  border-top: 2px solid #4ecdc4;
 }
 
 .theme-green {
-  border-top: 4px solid #95e1d3;
+  border-top: 2px solid #95e1d3;
 }
 
 .theme-purple {
-  border-top: 4px solid #a8e6cf;
+  border-top: 2px solid #a8e6cf;
 }
 
 .theme-gold {
-  border-top: 4px solid #ffd93d;
+  border-top: 2px solid #ffd93d;
 }
 
 .card-header {
@@ -197,8 +197,7 @@ const toggleExpanded = () => {
 
 .leaderboard-content {
   padding: 0 20px;
-  max-height: 400px;
-  overflow-y: auto;
+  /* 移除固定高度和滚动条，让内容自然展开 */
 }
 
 .empty-state {

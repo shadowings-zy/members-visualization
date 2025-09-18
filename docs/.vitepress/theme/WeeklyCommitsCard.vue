@@ -15,21 +15,11 @@
       </div>
     </div>
 
-    <!-- 时间范围选择器 -->
-    <div class="time-range-selector">
-      <div class="range-buttons">
-        <button 
-          v-for="range in timeRanges" 
-          :key="range.days"
-          @click="selectedRange = range.days"
-          :class="{ active: selectedRange === range.days }"
-          class="range-btn"
-        >
-          {{ range.label }}
-        </button>
-      </div>
-      <div class="update-info">
-        <span class="update-time">📅 {{ lastUpdateTime }}</span>
+    <!-- 更新信息 -->
+    <div class="update-info-section">
+      <div class="time-info">
+        <span class="time-label">📅 最近7天活跃数据</span>
+        <span class="update-time">{{ lastUpdateTime }}</span>
       </div>
     </div>
 
@@ -58,6 +48,8 @@
           :member="member"
           :rank="index + 1"
           :animation-delay="index * 100"
+          :show-details="activeDetailsUser === member.user_key"
+          @toggle-details="handleToggleDetails"
         />
       </div>
     </div>
@@ -85,45 +77,66 @@
 import { ref, computed, onMounted } from 'vue'
 import WeeklyCommitItem from './WeeklyCommitItem.vue'
 
+// Props
+const props = defineProps({
+  membersData: {
+    type: Array,
+    default: () => []
+  },
+  selectedDomain: {
+    type: String,
+    default: ''
+  },
+  topCount: {
+    type: Number,
+    default: 20
+  }
+})
+
 // 响应式数据
 const loading = ref(true)
 const error = ref(null)
 const commitsData = ref(null)
-const selectedRange = ref(7)
 const isExpanded = ref(false)
-
-// 时间范围选项
-const timeRanges = [
-  { days: 7, label: '7天' },
-  { days: 14, label: '14天' },
-  { days: 30, label: '30天' }
-]
+const activeDetailsUser = ref(null) // 当前显示详情的用户
 
 // 计算属性
 const validMembers = computed(() => {
   if (!commitsData.value?.user_commits) return []
-  
+
   const members = []
-  
+
   for (const [userKey, stats] of Object.entries(commitsData.value.user_commits)) {
-    // 过滤条件：至少3个commit
-    if (stats.total_commits >= 3) {
-      members.push({
+    // 过滤条件：至少1个commit
+    if (stats.total_commits >= 1) {
+      const member = {
         user_key: userKey,
         display_name: extractDisplayName(userKey),
         github_username: extractGithubUsername(userKey),
         ...stats,
         // 计算卷王分数
         score: calculateRollKingScore(stats)
-      })
+      }
+
+      // 根据研究方向筛选
+      if (props.selectedDomain) {
+        const memberInfo = props.membersData.find(m => m.id === userKey)
+        if (memberInfo && memberInfo.domain && memberInfo.domain.includes(props.selectedDomain)) {
+          members.push(member)
+        }
+      } else {
+        members.push(member)
+      }
     }
   }
-  
-  // 按分数排序
-  return members.sort((a, b) => b.score - a.score)
+
+  // 按分数排序，然后根据topCount限制数量
+  const sorted = members.sort((a, b) => b.score - a.score)
+  return sorted.slice(0, props.topCount)
 })
 
 const displayMembers = computed(() => {
+  // 如果展开，显示所有筛选后的成员；否则只显示前5名
   return isExpanded.value ? validMembers.value : validMembers.value.slice(0, 5)
 })
 
@@ -194,6 +207,15 @@ const calculateRollKingScore = (stats) => {
   return Math.round(score)
 }
 
+// 处理详情弹窗切换
+const handleToggleDetails = (userKey) => {
+  if (activeDetailsUser.value === userKey) {
+    activeDetailsUser.value = null // 关闭当前弹窗
+  } else {
+    activeDetailsUser.value = userKey // 打开新弹窗，自动关闭其他
+  }
+}
+
 const loadCommitsData = async () => {
   try {
     loading.value = true
@@ -235,7 +257,7 @@ onMounted(() => {
   overflow: hidden;
   transition: all 0.3s ease;
   position: relative;
-  border-top: 4px solid #ff6b6b;
+  border-top: 2px solid #ff6b6b;
 }
 
 .weekly-commits-card:hover {
@@ -309,51 +331,37 @@ onMounted(() => {
   opacity: 0.9;
 }
 
-.time-range-selector {
+.update-info-section {
   padding: 15px 20px;
   background: var(--vp-c-bg-soft);
   border-bottom: 1px solid var(--vp-c-divider);
+}
+
+.time-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 15px;
 }
 
-.range-buttons {
-  display: flex;
-  gap: 8px;
-}
-
-.range-btn {
-  padding: 6px 12px;
-  border: 1px solid var(--vp-c-divider);
-  background: var(--vp-c-bg);
+.time-label {
+  font-size: 14px;
+  font-weight: 600;
   color: var(--vp-c-text-1);
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.range-btn:hover {
-  border-color: #ff6b6b;
-  color: #ff6b6b;
-}
-
-.range-btn.active {
-  background: #ff6b6b;
-  color: white;
-  border-color: #ff6b6b;
-}
-
-.update-info {
+.update-time {
   font-size: 12px;
   color: var(--vp-c-text-2);
+  opacity: 0.8;
 }
 
 .leaderboard-content {
   padding: 0 20px;
-  max-height: 500px;
-  overflow-y: auto;
+  /* 移除固定高度和滚动条，让内容自然展开 */
 }
 
 .loading-state, .error-state, .empty-state {
@@ -470,10 +478,10 @@ onMounted(() => {
     min-width: auto;
   }
   
-  .time-range-selector {
+  .time-info {
     flex-direction: column;
-    gap: 10px;
-    align-items: stretch;
+    gap: 8px;
+    align-items: flex-start;
   }
   
   .card-footer {
