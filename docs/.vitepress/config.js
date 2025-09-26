@@ -39,9 +39,10 @@ module.exports = {
     // 导航栏
     nav: [
       { text: '🏠 首页', link: '/' },
+      { text: '🏆 榜单页', link: '/rankings' },
       { text: '👥 贡献者页', link: '/members' },
       { text: '📈 统计页', link: '/stats' },
-      { text: '🏆 榜单页', link: '/rankings' },
+      { text: '⭐ 点 Star', link: '/star' },
       {
         text: '🔗 相关链接',
         items: [
@@ -59,9 +60,10 @@ module.exports = {
           text: '📋 导航菜单',
           items: [
             { text: '🏠 首页', link: '/' },
+            { text: '🏆 榜单页', link: '/rankings' },
             { text: '👥 贡献者页', link: '/members' },
             { text: '📈 统计页', link: '/stats' },
-            { text: '🏆 榜单页', link: '/rankings' }
+            { text: '⭐ 点 Star', link: '/star' },
           ]
         }
       ]
